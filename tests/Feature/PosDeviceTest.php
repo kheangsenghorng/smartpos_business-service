@@ -179,4 +179,38 @@ class PosDeviceTest extends TestCase
         ]);
         $newAuth->assertStatus(200);
     }
+
+    public function test_can_register_pos_device_with_hardware_metadata(): void
+    {
+        $userUuid = (string) Str::uuid();
+        $business = Business::create(['name' => 'Business POS Meta', 'code' => 'BIZ-POS-7']);
+        BusinessUser::create(['business_id' => $business->id, 'user_uuid' => $userUuid, 'is_owner' => true, 'status' => 'active']);
+        $outlet = Outlet::create(['business_id' => $business->id, 'code' => 'OUT-P7', 'name' => 'Outlet P7']);
+
+        $response = $this->withJwtAuth($userUuid, ['pos_devices.create'])
+            ->postJson("/api/v1/outlets/{$outlet->uuid}/pos-devices", [
+                'machine_id' => 'POS-SUNMI-T2',
+                'device_name' => 'Sunmi T2 Counter POS',
+                'device_type' => 'counter_terminal',
+                'platform' => 'android',
+                'os_version' => 'Android 11 SUNMI-OS',
+                'app_version' => 'v2.4.0',
+                'ip_address' => '192.168.1.150',
+                'mac_address' => '00:1B:44:11:3A:B7',
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.machine_id', 'POS-SUNMI-T2')
+            ->assertJsonPath('data.os_version', 'Android 11 SUNMI-OS')
+            ->assertJsonPath('data.app_version', 'v2.4.0')
+            ->assertJsonPath('data.ip_address', '192.168.1.150');
+
+        $this->assertDatabaseHas('pos_devices', [
+            'machine_id' => 'POS-SUNMI-T2',
+            'os_version' => 'Android 11 SUNMI-OS',
+            'app_version' => 'v2.4.0',
+            'ip_address' => '192.168.1.150',
+            'mac_address' => '00:1B:44:11:3A:B7',
+        ]);
+    }
 }

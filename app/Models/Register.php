@@ -18,8 +18,22 @@ class Register extends Model
         'outlet_id',
         'code',
         'name',
+        'description',
+        'default_cash_amount',
+        'receipt_printer_name',
+        'is_cash_drawer_connected',
+        'is_active',
         'status',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+            'is_cash_drawer_connected' => 'boolean',
+            'default_cash_amount' => 'decimal:2',
+        ];
+    }
 
     public function uniqueIds(): array
     {

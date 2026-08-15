@@ -55,4 +55,35 @@ class RegisterTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['code']);
     }
+
+    public function test_can_create_register_with_enhanced_schema_fields(): void
+    {
+        $userUuid = (string) Str::uuid();
+        $business = Business::create(['name' => 'Business R3', 'code' => 'BIZ-REG-3']);
+        BusinessUser::create(['business_id' => $business->id, 'user_uuid' => $userUuid, 'is_owner' => true, 'status' => 'active']);
+        $outlet = Outlet::create(['business_id' => $business->id, 'code' => 'OUT-R3', 'name' => 'Outlet R3']);
+
+        $response = $this->withJwtAuth($userUuid, ['registers.create'])
+            ->postJson("/api/v1/outlets/{$outlet->uuid}/registers", [
+                'code' => 'REG-MAIN-01',
+                'name' => 'Main Front Counter',
+                'description' => 'Fast checkout terminal 1',
+                'default_cash_amount' => 500000.00,
+                'receipt_printer_name' => 'EPSON TM-T88VI',
+                'is_cash_drawer_connected' => true,
+                'is_active' => true,
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.code', 'REG-MAIN-01')
+            ->assertJsonPath('data.receipt_printer_name', 'EPSON TM-T88VI')
+            ->assertJsonPath('data.is_cash_drawer_connected', true);
+
+        $this->assertDatabaseHas('registers', [
+            'outlet_id' => $outlet->id,
+            'code' => 'REG-MAIN-01',
+            'receipt_printer_name' => 'EPSON TM-T88VI',
+            'is_cash_drawer_connected' => true,
+        ]);
+    }
 }

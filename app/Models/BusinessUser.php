@@ -14,10 +14,19 @@ class BusinessUser extends Model
     protected $fillable = [
         'uuid',
         'business_id',
+        'outlet_id',
         'user_uuid',
+        'role',
         'is_owner',
+        'pin_code_hash',
+        'phone',
+        'notes',
         'status',
         'joined_at',
+    ];
+
+    protected $hidden = [
+        'pin_code_hash',
     ];
 
     protected function casts(): array
@@ -41,5 +50,10 @@ class BusinessUser extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function outlet(): BelongsTo
+    {
+        return $this->belongsTo(Outlet::class);
     }
 }

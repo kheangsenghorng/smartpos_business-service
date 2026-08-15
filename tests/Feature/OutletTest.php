@@ -73,4 +73,42 @@ class OutletTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_can_create_outlet_with_enhanced_schema_fields(): void
+    {
+        $userUuid = (string) Str::uuid();
+        $business = Business::create(['name' => 'Business Outlet Test', 'code' => 'BIZ-OUT-ENH']);
+        BusinessUser::create(['business_id' => $business->id, 'user_uuid' => $userUuid, 'is_owner' => true, 'status' => 'active']);
+
+        $response = $this->withJwtAuth($userUuid, ['outlets.create'])
+            ->postJson("/api/v1/businesses/{$business->uuid}/outlets", [
+                'code' => 'OUT-ENH-01',
+                'name' => 'Downtown Flagship',
+                'phone' => '+62215551234',
+                'email' => 'downtown@smartretail.id',
+                'address' => 'Mall Grand Indonesia Lt. 3',
+                'city' => 'Jakarta Pusat',
+                'province' => 'DKI Jakarta',
+                'postal_code' => '10310',
+                'country_code' => 'ID',
+                'latitude' => -6.19541200,
+                'longitude' => 106.82088000,
+                'is_main_outlet' => true,
+                'receipt_header' => 'Grand Indonesia Store',
+                'receipt_footer' => 'No refunds without receipt',
+                'tax_rate' => 11.00,
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.code', 'OUT-ENH-01')
+            ->assertJsonPath('data.postal_code', '10310')
+            ->assertJsonPath('data.is_main_outlet', true);
+
+        $this->assertDatabaseHas('outlets', [
+            'business_id' => $business->id,
+            'code' => 'OUT-ENH-01',
+            'postal_code' => '10310',
+            'is_main_outlet' => true,
+        ]);
+    }
 }

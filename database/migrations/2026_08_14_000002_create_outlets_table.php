@@ -22,7 +22,14 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->string('city')->nullable();
             $table->string('province')->nullable();
-            $table->string('country_code')->nullable()->default('ID');
+            $table->string('postal_code')->nullable();
+            $table->string('country_code', 10)->nullable()->default('ID');
+            $table->decimal('latitude', 10, 8)->nullable();
+            $table->decimal('longitude', 11, 8)->nullable();
+            $table->boolean('is_main_outlet')->default(false);
+            $table->text('receipt_header')->nullable();
+            $table->text('receipt_footer')->nullable();
+            $table->decimal('tax_rate', 5, 2)->nullable();
             $table->string('timezone')->nullable()->default('Asia/Jakarta');
             $table->string('status')->default('active');
             $table->timestamps();

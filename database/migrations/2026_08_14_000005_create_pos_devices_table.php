@@ -21,10 +21,16 @@ return new class extends Migration
             $table->string('device_name');
             $table->string('device_type')->nullable();
             $table->string('platform')->nullable();
+            $table->string('os_version')->nullable();
+            $table->string('app_version')->nullable();
+            $table->string('ip_address', 45)->nullable();
+            $table->string('mac_address')->nullable();
             $table->string('machine_password_hash');
             $table->string('status')->default('pending');
             $table->timestamp('registered_at')->nullable();
+            $table->timestamp('paired_at')->nullable();
             $table->timestamp('last_seen_at')->nullable();
+            $table->timestamp('last_sync_at')->nullable();
             $table->timestamps();
         });
     }

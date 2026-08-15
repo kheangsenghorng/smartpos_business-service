@@ -22,10 +22,27 @@ class Outlet extends Model
         'address',
         'city',
         'province',
+        'postal_code',
         'country_code',
+        'latitude',
+        'longitude',
+        'is_main_outlet',
+        'receipt_header',
+        'receipt_footer',
+        'tax_rate',
         'timezone',
         'status',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_main_outlet' => 'boolean',
+            'tax_rate' => 'decimal:2',
+            'latitude' => 'decimal:8',
+            'longitude' => 'decimal:8',
+        ];
+    }
 
     public function uniqueIds(): array
     {
@@ -45,6 +62,11 @@ class Outlet extends Model
     public function registers(): HasMany
     {
         return $this->hasMany(Register::class);
+    }
+
+    public function businessUsers(): HasMany
+    {
+        return $this->hasMany(BusinessUser::class);
     }
 
     public function posDevices(): HasMany

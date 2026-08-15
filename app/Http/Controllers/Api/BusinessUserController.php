@@ -9,6 +9,7 @@ use App\Models\Business;
 use App\Models\BusinessUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class BusinessUserController extends Controller
 {
@@ -35,6 +36,11 @@ class BusinessUserController extends Controller
         $data['status'] = $data['status'] ?? 'active';
         $data['joined_at'] = now();
 
+        if (!empty($data['pin_code'])) {
+            $data['pin_code_hash'] = Hash::make($data['pin_code']);
+            unset($data['pin_code']);
+        }
+
         $businessUser = BusinessUser::create($data);
 
         return response()->json([
@@ -52,7 +58,16 @@ class BusinessUserController extends Controller
             return response()->json(['message' => 'User does not belong to this business.'], 404);
         }
 
-        $businessUser->update($request->validated());
+        $data = $request->validated();
+
+        if (isset($data['pin_code'])) {
+            if (!empty($data['pin_code'])) {
+                $data['pin_code_hash'] = Hash::make($data['pin_code']);
+            }
+            unset($data['pin_code']);
+        }
+
+        $businessUser->update($data);
 
         return response()->json([
             'message' => 'Business user membership updated successfully.',

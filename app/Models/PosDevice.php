@@ -20,10 +20,16 @@ class PosDevice extends Model
         'device_name',
         'device_type',
         'platform',
+        'os_version',
+        'app_version',
+        'ip_address',
+        'mac_address',
         'machine_password_hash',
         'status',
         'registered_at',
+        'paired_at',
         'last_seen_at',
+        'last_sync_at',
     ];
 
     protected $hidden = [
@@ -34,7 +40,9 @@ class PosDevice extends Model
     {
         return [
             'registered_at' => 'datetime',
+            'paired_at' => 'datetime',
             'last_seen_at' => 'datetime',
+            'last_sync_at' => 'datetime',
         ];
     }
 

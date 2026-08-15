@@ -18,6 +18,10 @@ class StorePosDeviceRequest extends FormRequest
             'device_name' => ['required', 'string', 'max:255'],
             'device_type' => ['nullable', 'string', 'max:50'],
             'platform' => ['nullable', 'string', 'max:50'],
+            'os_version' => ['nullable', 'string', 'max:50'],
+            'app_version' => ['nullable', 'string', 'max:50'],
+            'ip_address' => ['nullable', 'ip'],
+            'mac_address' => ['nullable', 'string', 'max:50'],
             'register_uuid' => ['nullable', 'uuid', 'exists:registers,uuid'],
         ];
     }

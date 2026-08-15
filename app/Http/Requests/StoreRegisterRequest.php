@@ -25,6 +25,11 @@ class StoreRegisterRequest extends FormRequest
                 Rule::unique('registers', 'code')->where('outlet_id', $outletId),
             ],
             'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'default_cash_amount' => ['nullable', 'numeric', 'min:0'],
+            'receipt_printer_name' => ['nullable', 'string', 'max:255'],
+            'is_cash_drawer_connected' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
             'status' => ['nullable', 'string', 'in:active,inactive'],
         ];
     }

@@ -21,10 +21,30 @@ class Business extends Model
         'tax_number',
         'registration_number',
         'logo_path',
+        'website',
+        'description',
+        'address',
+        'city',
+        'province',
+        'postal_code',
+        'country_code',
         'default_currency',
+        'currency_symbol',
+        'receipt_header',
+        'receipt_footer',
+        'tax_rate',
+        'is_tax_inclusive',
         'timezone',
         'status',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_tax_inclusive' => 'boolean',
+            'tax_rate' => 'decimal:2',
+        ];
+    }
 
     public function uniqueIds(): array
     {

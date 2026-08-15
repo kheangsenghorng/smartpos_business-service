@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Business;
 use App\Models\BusinessUser;
+use App\Models\Outlet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -80,5 +81,39 @@ class BusinessUserTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('data.status', 'suspended');
+    }
+
+    public function test_can_add_cashier_user_with_pin_code_and_role(): void
+    {
+        $ownerUuid = (string) Str::uuid();
+        $cashierUuid = (string) Str::uuid();
+
+        $business = Business::create(['name' => 'Retail B5', 'code' => 'BIZ-U5']);
+        BusinessUser::create(['business_id' => $business->id, 'user_uuid' => $ownerUuid, 'is_owner' => true, 'status' => 'active']);
+        $outlet = Outlet::create(['business_id' => $business->id, 'code' => 'OUT-U5', 'name' => 'Outlet U5']);
+
+        $response = $this->withJwtAuth($ownerUuid, ['business_users.manage'])
+            ->postJson("/api/v1/businesses/{$business->uuid}/users", [
+                'user_uuid' => $cashierUuid,
+                'outlet_id' => $outlet->id,
+                'role' => 'cashier',
+                'is_owner' => false,
+                'pin_code' => '123456',
+                'phone' => '+62811223344',
+                'notes' => 'Day shift cashier',
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.user_uuid', $cashierUuid)
+            ->assertJsonPath('data.role', 'cashier')
+            ->assertJsonPath('data.outlet_id', $outlet->id)
+            ->assertJsonMissingPath('data.pin_code_hash');
+
+        $this->assertDatabaseHas('business_users', [
+            'business_id' => $business->id,
+            'user_uuid' => $cashierUuid,
+            'role' => 'cashier',
+            'outlet_id' => $outlet->id,
+        ]);
     }
 }
