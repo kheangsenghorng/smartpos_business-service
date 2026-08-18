@@ -37,7 +37,7 @@ class EnsureCashierSessionActive
 
         if ($session->status !== 'active') {
             return response()->json([
-                'message' => 'Cashier session is not active. Current status: ' . $session->status,
+                'message' => 'Cashier session is not active. Current status: '.$session->status,
                 'status' => $session->status,
             ], 403);
         }

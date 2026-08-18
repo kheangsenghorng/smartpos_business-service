@@ -7,7 +7,6 @@ use App\Models\BusinessUser;
 use App\Models\Outlet;
 use App\Models\PosDevice;
 use App\Models\Register;
-use App\Models\RegisterSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;

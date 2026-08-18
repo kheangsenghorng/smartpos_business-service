@@ -61,6 +61,7 @@ class EnsureBusinessOwner
         }
         if (is_string($outletParam)) {
             $outlet = Outlet::where('uuid', $outletParam)->with('business')->first();
+
             return $outlet?->business;
         }
 
@@ -70,6 +71,7 @@ class EnsureBusinessOwner
         }
         if (is_string($registerParam)) {
             $register = Register::where('uuid', $registerParam)->with('business')->first();
+
             return $register?->business;
         }
 
@@ -79,6 +81,7 @@ class EnsureBusinessOwner
         }
         if (is_string($posDeviceParam)) {
             $posDevice = PosDevice::where('uuid', $posDeviceParam)->with('business')->first();
+
             return $posDevice?->business;
         }
 

@@ -295,7 +295,7 @@ class PosDeviceController extends Controller
 
         if ($device->status !== 'active') {
             return response()->json([
-                'message' => 'POS device is not active. Current status: ' . $device->status,
+                'message' => 'POS device is not active. Current status: '.$device->status,
             ], 403);
         }
 

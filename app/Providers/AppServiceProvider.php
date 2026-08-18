@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use Dedoc\Scramble\Scramble;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -28,10 +31,10 @@ class AppServiceProvider extends ServiceProvider
             );
 
         // 2. Global API Rate Limiter (60 requests/min per User/IP)
-        \Illuminate\Support\Facades\RateLimiter::for('api', function (\Illuminate\Http\Request $request) {
-            return \Illuminate\Cache\RateLimiting\Limit::perMinute(60)
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)
                 ->by($request->header('X-User-Uuid') ?: $request->ip())
-                ->response(function (\Illuminate\Http\Request $request, array $headers) {
+                ->response(function (Request $request, array $headers) {
                     return response()->json([
                         'success' => false,
                         'error' => 'TOO_MANY_REQUESTS',
@@ -42,13 +45,13 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // 3. Strict Auth Rate Limiter (5 attempts/min per Machine ID & IP)
-        \Illuminate\Support\Facades\RateLimiter::for('auth', function (\Illuminate\Http\Request $request) {
+        RateLimiter::for('auth', function (Request $request) {
             $machineId = strtolower((string) ($request->input('machine_id') ?? ''));
             $key = $machineId !== '' ? "auth:{$machineId}|{$request->ip()}" : $request->ip();
 
-            return \Illuminate\Cache\RateLimiting\Limit::perMinute(5)
+            return Limit::perMinute(5)
                 ->by($key)
-                ->response(function (\Illuminate\Http\Request $request, array $headers) {
+                ->response(function (Request $request, array $headers) {
                     return response()->json([
                         'success' => false,
                         'error' => 'TOO_MANY_ATTEMPTS',
@@ -59,10 +62,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // 4. Mutations Rate Limiter for write operations (30 writes/min)
-        \Illuminate\Support\Facades\RateLimiter::for('mutations', function (\Illuminate\Http\Request $request) {
-            return \Illuminate\Cache\RateLimiting\Limit::perMinute(30)
+        RateLimiter::for('mutations', function (Request $request) {
+            return Limit::perMinute(30)
                 ->by($request->header('X-User-Uuid') ?: $request->ip())
-                ->response(function (\Illuminate\Http\Request $request, array $headers) {
+                ->response(function (Request $request, array $headers) {
                     return response()->json([
                         'success' => false,
                         'error' => 'TOO_MANY_REQUESTS',

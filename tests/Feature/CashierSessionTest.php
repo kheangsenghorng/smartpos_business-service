@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Business;
 use App\Models\BusinessUser;
-use App\Models\CashierSession;
 use App\Models\Outlet;
 use App\Models\PosDevice;
 use App\Models\Register;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -73,8 +73,8 @@ class CashierSessionTest extends TestCase
             ->assertJsonPath('data.status', 'active');
 
         // 5. Set a PIN on user and verify wrong PIN is rejected on unlock
-        $businessUser->update(['pin_code_hash' => \Illuminate\Support\Facades\Hash::make('1234')]);
-        
+        $businessUser->update(['pin_code_hash' => Hash::make('1234')]);
+
         // Re-lock
         $this->withJwtAuth($userUuid, ['pos_devices.use'])
             ->postJson("/api/v1/outlets/{$outlet->uuid}/cashier-sessions/{$sessionUuid}/lock")

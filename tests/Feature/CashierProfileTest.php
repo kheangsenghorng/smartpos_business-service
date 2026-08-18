@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Business;
 use App\Models\BusinessUser;
-use App\Models\CashierProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;

@@ -1,5 +1,7 @@
 <?php
 
+use Dedoc\Scramble\SecurityDocumentation\MiddlewareAuthSecurityStrategy;
+
 return [
 
     'api_path' => 'api/v1',
@@ -29,7 +31,7 @@ Business Operations & POS Management API for SmartPOS.
     ],
 
     'security_strategy' => [
-        \Dedoc\Scramble\SecurityDocumentation\MiddlewareAuthSecurityStrategy::class,
+        MiddlewareAuthSecurityStrategy::class,
         [
             'middleware' => ['jwt.auth', 'auth', 'auth:*'],
         ],

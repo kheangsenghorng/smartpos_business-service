@@ -19,10 +19,15 @@ class InputValidationSecurityTest extends TestCase
     use RefreshDatabase;
 
     private string $ownerUuid;
+
     private Business $business;
+
     private BusinessUser $ownerUser;
+
     private Outlet $outlet;
+
     private Register $register;
+
     private PosDevice $posDevice;
 
     protected function setUp(): void

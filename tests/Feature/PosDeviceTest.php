@@ -175,7 +175,7 @@ class PosDeviceTest extends TestCase
         // Verify non-owner cannot rotate secret
         $nonOwnerUuid = (string) Str::uuid();
         BusinessUser::create(['business_id' => $business->id, 'user_uuid' => $nonOwnerUuid, 'is_owner' => false, 'status' => 'active']);
-        
+
         $this->withJwtAuth($nonOwnerUuid, ['pos_devices.manage'])
             ->postJson("/api/v1/pos-devices/{$device->uuid}/rotate-secret")
             ->assertStatus(403)

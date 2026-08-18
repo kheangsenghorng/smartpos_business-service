@@ -12,7 +12,6 @@ use App\Models\PosDevice;
 use App\Models\Register;
 use App\Models\RegisterSession;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class RegisterSessionController extends Controller
@@ -148,7 +147,7 @@ class RegisterSessionController extends Controller
 
         if ($registerSession->status !== 'open') {
             return response()->json([
-                'message' => 'Shift session is already closed. Current status: ' . $registerSession->status,
+                'message' => 'Shift session is already closed. Current status: '.$registerSession->status,
             ], 422);
         }
 

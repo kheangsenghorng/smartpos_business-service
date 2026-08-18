@@ -9,4 +9,3 @@ Route::get('/', function () {
 
 Scramble::registerUiRoute('docs/business');
 Scramble::registerJsonSpecificationRoute('docs/business/api.json');
-

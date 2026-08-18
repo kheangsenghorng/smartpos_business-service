@@ -135,7 +135,7 @@ class CashierSessionController extends Controller
 
         if ($cashierSession->status !== 'active') {
             return response()->json([
-                'message' => 'Only active sessions can be locked. Current status: ' . $cashierSession->status,
+                'message' => 'Only active sessions can be locked. Current status: '.$cashierSession->status,
             ], 422);
         }
 
@@ -162,7 +162,7 @@ class CashierSessionController extends Controller
 
         if ($cashierSession->status !== 'locked') {
             return response()->json([
-                'message' => 'Session is not locked. Current status: ' . $cashierSession->status,
+                'message' => 'Session is not locked. Current status: '.$cashierSession->status,
             ], 422);
         }
 

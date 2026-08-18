@@ -36,7 +36,7 @@ class BusinessUserController extends Controller
         $data['status'] = $data['status'] ?? 'active';
         $data['joined_at'] = now();
 
-        if (!empty($data['pin_code'])) {
+        if (! empty($data['pin_code'])) {
             $data['pin_code_hash'] = Hash::make($data['pin_code']);
             unset($data['pin_code']);
         }
@@ -77,7 +77,7 @@ class BusinessUserController extends Controller
         }
 
         if (isset($data['pin_code'])) {
-            if (!empty($data['pin_code'])) {
+            if (! empty($data['pin_code'])) {
                 $data['pin_code_hash'] = Hash::make($data['pin_code']);
             }
             unset($data['pin_code']);

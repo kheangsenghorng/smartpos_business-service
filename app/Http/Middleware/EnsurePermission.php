@@ -20,7 +20,7 @@ class EnsurePermission
 
         if (! in_array($permission, $permissions)) {
             return response()->json([
-                'message' => 'Forbidden. Required permission: ' . $permission,
+                'message' => 'Forbidden. Required permission: '.$permission,
             ], 403);
         }
 

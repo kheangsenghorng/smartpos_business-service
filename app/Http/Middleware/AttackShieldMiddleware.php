@@ -76,7 +76,7 @@ class AttackShieldMiddleware
 
         // 2. Block malicious reconnaissance probes targeting sensitive files
         foreach ($this->blockedPathPatterns as $pattern) {
-            if (preg_match('#' . $pattern . '#i', '/' . $path)) {
+            if (preg_match('#'.$pattern.'#i', '/'.$path)) {
                 $this->logAttack($request, "Reconnaissance path probe blocked: {$path}");
 
                 return response()->json([
@@ -106,7 +106,7 @@ class AttackShieldMiddleware
      */
     protected function logAttack(Request $request, string $reason): void
     {
-        Log::warning('[SECURITY_ATTACK_SHIELD] ' . $reason, [
+        Log::warning('[SECURITY_ATTACK_SHIELD] '.$reason, [
             'ip' => $request->ip(),
             'method' => $request->method(),
             'url' => $request->fullUrl(),

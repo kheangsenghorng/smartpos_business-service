@@ -1,5 +1,17 @@
 <?php
 
+use App\Http\Middleware\AttackShieldMiddleware;
+use App\Http\Middleware\EnsureBusinessMember;
+use App\Http\Middleware\EnsureBusinessOwner;
+use App\Http\Middleware\EnsureCashierSessionActive;
+use App\Http\Middleware\EnsureOutletAccess;
+use App\Http\Middleware\EnsurePermission;
+use App\Http\Middleware\EnsurePosDeviceAccess;
+use App\Http\Middleware\EnsureRegisterAccess;
+use App\Http\Middleware\JwtAuthMiddleware;
+use App\Http\Middleware\SanitizeInputMiddleware;
+use App\Http\Middleware\SecurityHeadersMiddleware;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,19 +26,19 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
-        $middleware->append(\App\Http\Middleware\AttackShieldMiddleware::class);
-        $middleware->append(\App\Http\Middleware\SanitizeInputMiddleware::class);
-        $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
+        $middleware->append(AttackShieldMiddleware::class);
+        $middleware->append(SanitizeInputMiddleware::class);
+        $middleware->append(SecurityHeadersMiddleware::class);
 
         $middleware->alias([
-            'jwt.auth' => \App\Http\Middleware\JwtAuthMiddleware::class,
-            'permission' => \App\Http\Middleware\EnsurePermission::class,
-            'business.member' => \App\Http\Middleware\EnsureBusinessMember::class,
-            'business.owner' => \App\Http\Middleware\EnsureBusinessOwner::class,
-            'outlet.access' => \App\Http\Middleware\EnsureOutletAccess::class,
-            'register.access' => \App\Http\Middleware\EnsureRegisterAccess::class,
-            'pos_device.access' => \App\Http\Middleware\EnsurePosDeviceAccess::class,
-            'cashier_session.active' => \App\Http\Middleware\EnsureCashierSessionActive::class,
+            'jwt.auth' => JwtAuthMiddleware::class,
+            'permission' => EnsurePermission::class,
+            'business.member' => EnsureBusinessMember::class,
+            'business.owner' => EnsureBusinessOwner::class,
+            'outlet.access' => EnsureOutletAccess::class,
+            'register.access' => EnsureRegisterAccess::class,
+            'pos_device.access' => EnsurePosDeviceAccess::class,
+            'cashier_session.active' => EnsureCashierSessionActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -34,7 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
-        $exceptions->render(function (\Illuminate\Database\QueryException $e, Request $request) {
+        $exceptions->render(function (QueryException $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
                     'success' => false,
@@ -44,7 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        $exceptions->render(function (\PDOException $e, Request $request) {
+        $exceptions->render(function (PDOException $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
                     'success' => false,

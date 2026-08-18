@@ -49,6 +49,7 @@ class SanitizeInputMiddleware
         if (is_string($input)) {
             // Strip null bytes and control chars (except standard newlines/tabs)
             $cleaned = str_replace("\0", '', $input);
+
             return mb_convert_encoding($cleaned, 'UTF-8', 'UTF-8');
         }
 

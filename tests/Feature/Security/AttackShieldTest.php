@@ -6,7 +6,9 @@ use App\Models\Business;
 use App\Models\Outlet;
 use App\Models\PosDevice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -190,8 +192,8 @@ class AttackShieldTest extends TestCase
         $userUuid = (string) Str::uuid();
 
         // Trigger an intentional QueryException via route using invalid raw query
-        \Illuminate\Support\Facades\Route::get('/api/v1/test-db-error', function () {
-            \Illuminate\Support\Facades\DB::select('SELECT * FROM non_existent_table_xyz_123');
+        Route::get('/api/v1/test-db-error', function () {
+            DB::select('SELECT * FROM non_existent_table_xyz_123');
         });
 
         $response = $this->getJson('/api/v1/test-db-error');

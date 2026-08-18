@@ -32,4 +32,3 @@ Route::post('/pos-devices/{posDevice}/lock', [PosDeviceController::class, 'lock'
 
 Route::post('/pos-devices/{posDevice}/rotate-secret', [PosDeviceController::class, 'rotateSecret'])
     ->middleware(['permission:pos_devices.manage', 'pos_device.access']);
-
