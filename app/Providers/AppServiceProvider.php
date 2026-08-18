@@ -74,5 +74,23 @@ class AppServiceProvider extends ServiceProvider
                     ], 429, $headers);
                 });
         });
+
+        // 5. Cashier PIN Unlock Rate Limiter (5 attempts/min to prevent brute-force attacks)
+        RateLimiter::for('cashier_pin', function (Request $request) {
+            $session = $request->route('cashierSession');
+            $sessionId = is_object($session) ? $session->id : (string) ($session ?? '');
+            $key = $sessionId !== '' ? "cashier_pin:{$sessionId}|{$request->ip()}" : "cashier_pin:{$request->ip()}";
+
+            return Limit::perMinute(5)
+                ->by($key)
+                ->response(function (Request $request, array $headers) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'TOO_MANY_PIN_ATTEMPTS',
+                        'message' => 'Too many PIN verification attempts. Please wait before trying again.',
+                        'retry_after_seconds' => (int) ($headers['Retry-After'] ?? 60),
+                    ], 429, $headers);
+                });
+        });
     }
 }

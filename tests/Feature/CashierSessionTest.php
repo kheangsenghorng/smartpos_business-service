@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Business;
 use App\Models\BusinessUser;
+use App\Models\CashierSession;
 use App\Models\Outlet;
 use App\Models\PosDevice;
 use App\Models\Register;
@@ -102,5 +103,59 @@ class CashierSessionTest extends TestCase
 
         $endResponse->assertStatus(200)
             ->assertJsonPath('data.status', 'ended');
+    }
+
+    public function test_cashier_pin_unlock_is_rate_limited(): void
+    {
+        $userUuid = (string) Str::uuid();
+        $business = Business::create(['name' => 'Rate Limit Biz', 'code' => 'RLB-01']);
+        $businessUser = BusinessUser::create([
+            'business_id' => $business->id,
+            'user_uuid' => $userUuid,
+            'is_owner' => true,
+            'pin_code_hash' => Hash::make('5555'),
+            'status' => 'active',
+        ]);
+        $outlet = Outlet::create(['business_id' => $business->id, 'code' => 'OUT-RL1', 'name' => 'Outlet RL1']);
+        $register = Register::create(['business_id' => $business->id, 'outlet_id' => $outlet->id, 'code' => 'REG-RL1', 'name' => 'Register RL1']);
+        $posDevice = PosDevice::create([
+            'business_id' => $business->id,
+            'outlet_id' => $outlet->id,
+            'register_id' => $register->id,
+            'machine_id' => 'MACHINE-RL-1',
+            'device_name' => 'Terminal RL1',
+            'status' => 'active',
+        ]);
+
+        $session = CashierSession::create([
+            'business_id' => $business->id,
+            'outlet_id' => $outlet->id,
+            'register_id' => $register->id,
+            'pos_device_id' => $posDevice->id,
+            'business_user_id' => $businessUser->id,
+            'user_uuid' => $userUuid,
+            'status' => 'locked',
+            'started_at' => now(),
+            'locked_at' => now(),
+            'last_activity_at' => now(),
+        ]);
+
+        // Attempt 5 incorrect PINs
+        for ($i = 0; $i < 5; $i++) {
+            $this->withJwtAuth($userUuid, ['pos_devices.use'])
+                ->postJson("/api/v1/outlets/{$outlet->uuid}/cashier-sessions/{$session->uuid}/unlock", [
+                    'pin_code' => '0000',
+                ])
+                ->assertStatus(401);
+        }
+
+        // 6th attempt must be throttled with 429
+        $throttledResponse = $this->withJwtAuth($userUuid, ['pos_devices.use'])
+            ->postJson("/api/v1/outlets/{$outlet->uuid}/cashier-sessions/{$session->uuid}/unlock", [
+                'pin_code' => '5555',
+            ]);
+
+        $throttledResponse->assertStatus(429)
+            ->assertJsonPath('error', 'TOO_MANY_PIN_ATTEMPTS');
     }
 }

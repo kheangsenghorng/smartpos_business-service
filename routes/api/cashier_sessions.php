@@ -19,7 +19,7 @@ Route::post('/outlets/{outlet}/cashier-sessions/{cashierSession}/lock', [Cashier
     ->middleware(['permission:pos_devices.use', 'outlet.access']);
 
 Route::post('/outlets/{outlet}/cashier-sessions/{cashierSession}/unlock', [CashierSessionController::class, 'unlock'])
-    ->middleware(['permission:pos_devices.use', 'outlet.access']);
+    ->middleware(['permission:pos_devices.use', 'outlet.access', 'throttle:cashier_pin']);
 
 Route::post('/outlets/{outlet}/cashier-sessions/{cashierSession}/end', [CashierSessionController::class, 'end'])
     ->middleware(['permission:pos_devices.use', 'outlet.access']);
