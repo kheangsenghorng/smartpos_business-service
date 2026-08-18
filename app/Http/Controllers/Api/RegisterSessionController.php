@@ -156,7 +156,8 @@ class RegisterSessionController extends Controller
         $closingCash = (float) $data['closing_cash'];
 
         $session = DB::transaction(function () use ($registerSession, $userUuid, $closingCash, $data, $outlet, $register) {
-            $drawerSession = $registerSession->cashDrawerSession;
+            $lockedRegSession = RegisterSession::where('id', $registerSession->id)->lockForUpdate()->first() ?? $registerSession;
+            $drawerSession = CashDrawerSession::where('register_session_id', $registerSession->id)->lockForUpdate()->first();
 
             // Calculate expected cash from drawer movements
             $netMovement = CashDrawerMovement::where('cash_drawer_session_id', $drawerSession?->id)

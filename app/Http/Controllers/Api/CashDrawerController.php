@@ -79,8 +79,13 @@ class CashDrawerController extends Controller
         }
 
         [$movement, $newBalance] = DB::transaction(function () use ($cashDrawerSession, $outlet, $register, $userUuid, $data, $amount) {
+            // Lock the cash drawer session row to prevent race conditions during concurrent balance calculations
+            $lockedSession = CashDrawerSession::where('id', $cashDrawerSession->id)
+                ->lockForUpdate()
+                ->first();
+
             $movement = CashDrawerMovement::create([
-                'cash_drawer_session_id' => $cashDrawerSession->id,
+                'cash_drawer_session_id' => $lockedSession ? $lockedSession->id : $cashDrawerSession->id,
                 'business_id' => $outlet->business_id,
                 'outlet_id' => $outlet->id,
                 'register_id' => $register->id,
@@ -96,9 +101,15 @@ class CashDrawerController extends Controller
             $newBalance = CashDrawerMovement::where('cash_drawer_session_id', $cashDrawerSession->id)
                 ->sum('amount');
 
-            $cashDrawerSession->update([
-                'expected_amount' => $newBalance,
-            ]);
+            if ($lockedSession) {
+                $lockedSession->update([
+                    'expected_amount' => $newBalance,
+                ]);
+            } else {
+                $cashDrawerSession->update([
+                    'expected_amount' => $newBalance,
+                ]);
+            }
 
             return [$movement, $newBalance];
         });
