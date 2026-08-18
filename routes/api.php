@@ -30,12 +30,22 @@ Route::prefix('v1')->group(function () {
 
         require __DIR__.'/api/businesses.php';
 
+        require __DIR__.'/api/business_settings.php';
+
         require __DIR__.'/api/business_users.php';
+
+        require __DIR__.'/api/cashier_profiles.php';
 
         require __DIR__.'/api/outlets.php';
 
         require __DIR__.'/api/registers.php';
 
         require __DIR__.'/api/pos_devices.php';
+
+        require __DIR__.'/api/device_sessions.php';
+
+        require __DIR__.'/api/cashier_sessions.php';
+
+        require __DIR__.'/api/shifts.php';
     });
 });

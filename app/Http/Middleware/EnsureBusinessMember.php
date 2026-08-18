@@ -32,6 +32,11 @@ class EnsureBusinessMember
             return response()->json(['message' => 'Business is inactive or not found.'], 403);
         }
 
+        $roles = $request->attributes->get('jwt_roles', []);
+        if (in_array('admin', $roles, true)) {
+            return $next($request);
+        }
+
         $membership = BusinessUser::where('business_id', $business->id)
             ->where('user_uuid', $userUuid)
             ->where('status', 'active')

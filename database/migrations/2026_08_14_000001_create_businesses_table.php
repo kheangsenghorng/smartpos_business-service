@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('tax_number')->nullable();
             $table->string('registration_number')->nullable();
             $table->string('logo_path')->nullable();
+            $table->string('logo_url')->nullable();
             $table->string('website')->nullable();
             $table->text('description')->nullable();
             $table->text('address')->nullable();
@@ -29,6 +30,7 @@ return new class extends Migration
             $table->string('province')->nullable();
             $table->string('postal_code')->nullable();
             $table->string('country_code', 10)->default('ID');
+            $table->string('currency_code', 3)->default('USD');
             $table->string('default_currency', 10)->default('IDR');
             $table->string('currency_symbol', 10)->default('Rp');
             $table->text('receipt_header')->nullable();

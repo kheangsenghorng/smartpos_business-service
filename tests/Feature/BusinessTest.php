@@ -66,6 +66,22 @@ class BusinessTest extends TestCase
             ->assertJsonPath('data.0.code', 'BIZ-002');
     }
 
+    public function test_platform_admin_can_list_all_businesses_without_explicit_membership(): void
+    {
+        // Create 2 businesses belonging to other users
+        Business::create(['name' => 'Store Alpha', 'code' => 'ALPHA-1']);
+        Business::create(['name' => 'Store Beta', 'code' => 'BETA-1']);
+
+        // Platform Admin without business_users entry
+        $adminUuid = (string) Str::uuid();
+
+        $response = $this->withJwtAuth($adminUuid, ['businesses.view'], ['admin'])
+            ->getJson('/api/v1/businesses');
+
+        $response->assertStatus(200)
+            ->assertJsonCount(2, 'data');
+    }
+
     public function test_duplicate_code_rejected(): void
     {
         Business::create([

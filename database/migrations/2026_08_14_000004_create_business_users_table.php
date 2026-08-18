@@ -17,8 +17,11 @@ return new class extends Migration
             $table->foreignId('business_id')->constrained('businesses')->cascadeOnDelete();
             $table->foreignId('outlet_id')->nullable()->constrained('outlets')->nullOnDelete();
             $table->uuid('user_uuid')->index();
+            $table->string('employee_code', 50)->nullable();
+            $table->string('job_title', 100)->nullable();
             $table->string('role', 50)->default('staff');
             $table->boolean('is_owner')->default(false);
+            $table->boolean('is_active')->default(true);
             $table->string('pin_code_hash')->nullable();
             $table->string('phone', 50)->nullable();
             $table->text('notes')->nullable();

@@ -22,4 +22,4 @@ Route::put('/registers/{register}', [RegisterController::class, 'update'])
     ->middleware(['permission:registers.update', 'register.access']);
 
 Route::delete('/registers/{register}', [RegisterController::class, 'destroy'])
-    ->middleware(['permission:registers.manage', 'register.access']);
+    ->middleware(['permission:registers.manage', 'register.access', 'business.owner']);

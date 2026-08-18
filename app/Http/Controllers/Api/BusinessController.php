@@ -19,14 +19,21 @@ class BusinessController extends Controller
     public function index(Request $request): JsonResponse
     {
         $userUuid = $request->attributes->get('user_uuid');
+        $roles = $request->attributes->get('jwt_roles', []);
 
-        $businessIds = BusinessUser::where('user_uuid', $userUuid)
-            ->where('status', 'active')
-            ->pluck('business_id');
+        // Platform Admin can view all businesses across the system
+        if (in_array('admin', $roles, true)) {
+            $businesses = Business::withCount(['outlets', 'registers', 'posDevices', 'businessUsers'])
+                ->get();
+        } else {
+            $businessIds = BusinessUser::where('user_uuid', $userUuid)
+                ->where('status', 'active')
+                ->pluck('business_id');
 
-        $businesses = Business::whereIn('id', $businessIds)
-            ->withCount(['outlets', 'registers', 'posDevices', 'businessUsers'])
-            ->get();
+            $businesses = Business::whereIn('id', $businessIds)
+                ->withCount(['outlets', 'registers', 'posDevices', 'businessUsers'])
+                ->get();
+        }
 
         return response()->json([
             'data' => $businesses,

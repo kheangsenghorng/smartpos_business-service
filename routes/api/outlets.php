@@ -22,4 +22,4 @@ Route::put('/outlets/{outlet}', [OutletController::class, 'update'])
     ->middleware(['permission:outlets.update', 'outlet.access']);
 
 Route::delete('/outlets/{outlet}', [OutletController::class, 'destroy'])
-    ->middleware(['permission:outlets.delete', 'outlet.access']);
+    ->middleware(['permission:outlets.delete', 'outlet.access', 'business.owner']);

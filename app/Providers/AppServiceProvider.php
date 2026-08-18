@@ -41,10 +41,13 @@ class AppServiceProvider extends ServiceProvider
                 });
         });
 
-        // 3. Strict Auth Rate Limiter (5 attempts/min per IP)
+        // 3. Strict Auth Rate Limiter (5 attempts/min per Machine ID & IP)
         \Illuminate\Support\Facades\RateLimiter::for('auth', function (\Illuminate\Http\Request $request) {
+            $machineId = strtolower((string) ($request->input('machine_id') ?? ''));
+            $key = $machineId !== '' ? "auth:{$machineId}|{$request->ip()}" : $request->ip();
+
             return \Illuminate\Cache\RateLimiting\Limit::perMinute(5)
-                ->by($request->ip())
+                ->by($key)
                 ->response(function (\Illuminate\Http\Request $request, array $headers) {
                     return response()->json([
                         'success' => false,

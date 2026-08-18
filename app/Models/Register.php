@@ -59,4 +59,24 @@ class Register extends Model
     {
         return $this->hasMany(PosDevice::class);
     }
+
+    public function cashierSessions(): HasMany
+    {
+        return $this->hasMany(CashierSession::class);
+    }
+
+    public function registerSessions(): HasMany
+    {
+        return $this->hasMany(RegisterSession::class);
+    }
+
+    public function cashDrawerSessions(): HasMany
+    {
+        return $this->hasMany(CashDrawerSession::class);
+    }
+
+    public function cashDrawerMovements(): HasMany
+    {
+        return $this->hasMany(CashDrawerMovement::class);
+    }
 }

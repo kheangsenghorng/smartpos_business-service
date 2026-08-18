@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AuthenticatePosDeviceRequest;
 use App\Http\Requests\StorePosDeviceRequest;
 use App\Http\Requests\UpdatePosDeviceRequest;
+use App\Models\BusinessUser;
+use App\Models\DeviceSession;
 use App\Models\Outlet;
 use App\Models\PosDevice;
+use App\Models\PosDeviceCredential;
 use App\Models\Register;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -52,22 +56,31 @@ class PosDeviceController extends Controller
         }
 
         $plainPassword = Str::random(32);
+        $passwordHash = Hash::make($plainPassword);
 
         $device = PosDevice::create([
             'business_id' => $outlet->business_id,
             'outlet_id' => $outlet->id,
             'register_id' => $registerId,
             'machine_id' => $data['machine_id'],
+            'device_code' => $data['device_code'] ?? $data['machine_id'],
             'device_name' => $data['device_name'],
+            'name' => $data['device_name'],
             'device_type' => $data['device_type'] ?? 'pos_terminal',
             'platform' => $data['platform'] ?? 'android',
             'os_version' => $data['os_version'] ?? null,
             'app_version' => $data['app_version'] ?? null,
             'ip_address' => $data['ip_address'] ?? null,
             'mac_address' => $data['mac_address'] ?? null,
-            'machine_password_hash' => Hash::make($plainPassword),
+            'machine_password_hash' => $passwordHash,
             'status' => 'pending',
             'registered_at' => now(),
+        ]);
+
+        PosDeviceCredential::create([
+            'pos_device_id' => $device->id,
+            'secret_hash' => $passwordHash,
+            'is_active' => true,
         ]);
 
         return response()->json([
@@ -82,7 +95,7 @@ class PosDeviceController extends Controller
      */
     public function show(PosDevice $posDevice): JsonResponse
     {
-        $posDevice->load(['business', 'outlet', 'register']);
+        $posDevice->load(['business', 'outlet', 'register', 'credentials', 'deviceSessions']);
 
         return response()->json([
             'data' => $posDevice,
@@ -133,7 +146,10 @@ class PosDeviceController extends Controller
      */
     public function activate(PosDevice $posDevice): JsonResponse
     {
-        $posDevice->update(['status' => 'active']);
+        $posDevice->update([
+            'status' => 'active',
+            'activated_at' => now(),
+        ]);
 
         return response()->json([
             'message' => 'POS device activated successfully.',
@@ -146,7 +162,14 @@ class PosDeviceController extends Controller
      */
     public function revoke(PosDevice $posDevice): JsonResponse
     {
-        $posDevice->update(['status' => 'revoked']);
+        $posDevice->update([
+            'status' => 'revoked',
+            'revoked_at' => now(),
+        ]);
+
+        // Revoke credentials and active device sessions
+        $posDevice->credentials()->update(['is_active' => false, 'revoked_at' => now()]);
+        $posDevice->deviceSessions()->whereNull('revoked_at')->update(['revoked_at' => now()]);
 
         return response()->json([
             'message' => 'POS device revoked successfully.',
@@ -170,12 +193,38 @@ class PosDeviceController extends Controller
     /**
      * Rotate credentials (machine password) for the specified POS device.
      */
-    public function rotateSecret(PosDevice $posDevice): JsonResponse
+    public function rotateSecret(Request $request, PosDevice $posDevice): JsonResponse
     {
+        $userUuid = $request->attributes->get('user_uuid');
+        $roles = $request->attributes->get('jwt_roles', []);
+
+        if (! in_array('admin', $roles, true)) {
+            $isOwner = BusinessUser::where('business_id', $posDevice->business_id)
+                ->where('user_uuid', $userUuid)
+                ->where('status', 'active')
+                ->where('is_owner', true)
+                ->exists();
+
+            if (! $isOwner) {
+                return response()->json([
+                    'message' => 'Forbidden. Only business owners or administrators can rotate hardware credentials.',
+                ], 403);
+            }
+        }
+
         $newPlainPassword = Str::random(32);
+        $newHash = Hash::make($newPlainPassword);
 
         $posDevice->update([
-            'machine_password_hash' => Hash::make($newPlainPassword),
+            'machine_password_hash' => $newHash,
+        ]);
+
+        $posDevice->credentials()->update(['is_active' => false]);
+        PosDeviceCredential::create([
+            'pos_device_id' => $posDevice->id,
+            'secret_hash' => $newHash,
+            'is_active' => true,
+            'last_rotated_at' => now(),
         ]);
 
         return response()->json([
@@ -193,10 +242,19 @@ class PosDeviceController extends Controller
         $data = $request->validated();
 
         $device = PosDevice::where('machine_id', $data['machine_id'])
-            ->with(['business', 'outlet', 'register'])
+            ->with(['business', 'outlet', 'register', 'credentials'])
             ->first();
 
-        if (! $device || ! Hash::check($data['machine_password'], $device->machine_password_hash)) {
+        $isAuthenticated = false;
+        if ($device) {
+            if (Hash::check($data['machine_password'], $device->machine_password_hash)) {
+                $isAuthenticated = true;
+            } elseif ($device->activeCredential && Hash::check($data['machine_password'], $device->activeCredential->secret_hash)) {
+                $isAuthenticated = true;
+            }
+        }
+
+        if (! $device || ! $isAuthenticated) {
             Log::warning('[SECURITY_POS_AUTH_FAILED] Invalid POS device authentication attempt', [
                 'machine_id' => $data['machine_id'] ?? null,
                 'ip' => $request->ip(),
@@ -241,10 +299,23 @@ class PosDeviceController extends Controller
             ], 403);
         }
 
+        $rawSessionToken = Str::random(64);
+        $deviceSession = DeviceSession::create([
+            'pos_device_id' => $device->id,
+            'token_hash' => hash('sha256', $rawSessionToken),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->header('User-Agent'),
+            'started_at' => now(),
+            'last_activity_at' => now(),
+            'expires_at' => now()->addHours(24),
+        ]);
+
         $device->update(['last_seen_at' => now()]);
 
         return response()->json([
             'message' => 'POS device authenticated successfully.',
+            'session_token' => $rawSessionToken,
+            'device_session_uuid' => $deviceSession->uuid,
             'context' => [
                 'pos_device' => $device,
                 'business' => $device->business,

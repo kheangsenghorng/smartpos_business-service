@@ -60,6 +60,22 @@ class BusinessUserController extends Controller
 
         $data = $request->validated();
 
+        if ($businessUser->is_owner && (
+            (isset($data['is_owner']) && ! $data['is_owner']) ||
+            (isset($data['status']) && $data['status'] !== 'active')
+        )) {
+            $ownersCount = BusinessUser::where('business_id', $business->id)
+                ->where('is_owner', true)
+                ->where('status', 'active')
+                ->count();
+
+            if ($ownersCount <= 1) {
+                return response()->json([
+                    'message' => 'Cannot demote or suspend the sole owner of the business.',
+                ], 422);
+            }
+        }
+
         if (isset($data['pin_code'])) {
             if (!empty($data['pin_code'])) {
                 $data['pin_code_hash'] = Hash::make($data['pin_code']);

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateBusinessUserRequest extends FormRequest
 {
@@ -13,8 +14,11 @@ class UpdateBusinessUserRequest extends FormRequest
 
     public function rules(): array
     {
+        $business = $this->route('business');
+        $businessId = is_object($business) ? $business->id : null;
+
         return [
-            'outlet_id' => ['nullable', 'exists:outlets,id'],
+            'outlet_id' => ['nullable', Rule::exists('outlets', 'id')->where('business_id', $businessId)],
             'role' => ['nullable', 'string', 'in:owner,manager,cashier,staff,admin'],
             'is_owner' => ['nullable', 'boolean'],
             'pin_code' => ['nullable', 'string', 'digits_between:4,8'],

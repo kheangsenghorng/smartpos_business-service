@@ -116,4 +116,49 @@ class BusinessUserTest extends TestCase
             'outlet_id' => $outlet->id,
         ]);
     }
+
+    public function test_cross_tenant_outlet_id_is_rejected(): void
+    {
+        $ownerUuid = (string) Str::uuid();
+        $targetUserUuid = (string) Str::uuid();
+
+        $businessA = Business::create(['name' => 'Tenant A', 'code' => 'BIZ-UA']);
+        BusinessUser::create(['business_id' => $businessA->id, 'user_uuid' => $ownerUuid, 'is_owner' => true, 'status' => 'active']);
+
+        $businessB = Business::create(['name' => 'Tenant B', 'code' => 'BIZ-UB']);
+        $foreignOutlet = Outlet::create(['business_id' => $businessB->id, 'code' => 'OUT-UB', 'name' => 'Foreign Outlet']);
+
+        // Attempt store with foreign outlet
+        $this->withJwtAuth($ownerUuid, ['business_users.manage'])
+            ->postJson("/api/v1/businesses/{$businessA->uuid}/users", [
+                'user_uuid' => $targetUserUuid,
+                'outlet_id' => $foreignOutlet->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['outlet_id']);
+    }
+
+    public function test_cannot_demote_or_suspend_sole_owner_via_update(): void
+    {
+        $ownerUuid = (string) Str::uuid();
+
+        $business = Business::create(['name' => 'Sole Owner Biz', 'code' => 'BIZ-SO1']);
+        $ownerUser = BusinessUser::create(['business_id' => $business->id, 'user_uuid' => $ownerUuid, 'is_owner' => true, 'status' => 'active']);
+
+        // Attempt demote sole owner
+        $this->withJwtAuth($ownerUuid, ['business_users.manage'])
+            ->putJson("/api/v1/businesses/{$business->uuid}/users/{$ownerUser->uuid}", [
+                'is_owner' => false,
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Cannot demote or suspend the sole owner of the business.');
+
+        // Attempt suspend sole owner via update
+        $this->withJwtAuth($ownerUuid, ['business_users.manage'])
+            ->putJson("/api/v1/businesses/{$business->uuid}/users/{$ownerUser->uuid}", [
+                'status' => 'suspended',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Cannot demote or suspend the sole owner of the business.');
+    }
 }

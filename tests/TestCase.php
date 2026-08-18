@@ -27,7 +27,7 @@ abstract class TestCase extends BaseTestCase
         $headerB64 = $this->base64UrlEncode(json_encode($header));
         $payloadB64 = $this->base64UrlEncode(json_encode($payload));
 
-        $secret = env('JWT_SECRET', 'RBX4H7inTQwxHrstXMsHwCGkUWm4JPgAjl7gFN7FLwkTwy28HNN3gYbGZwE3q1UF');
+        $secret = config('jwt.secret', 'test-jwt-secret-key-for-phpunit-testing-only-1234567890');
         $signature = $this->base64UrlEncode(
             hash_hmac('sha256', "$headerB64.$payloadB64", $secret, true)
         );

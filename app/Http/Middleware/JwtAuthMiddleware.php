@@ -46,7 +46,7 @@ class JwtAuthMiddleware
 
         [$headerB64, $payloadB64, $sigB64] = $parts;
 
-        $secret = env('JWT_SECRET', config('jwt.secret'));
+        $secret = config('jwt.secret');
 
         if (! $secret) {
             return null;
@@ -75,10 +75,9 @@ class JwtAuthMiddleware
         }
 
         // Verify issuer
-        $expectedIssuer = config('jwt.issuer');
         $verifyIssuer = config('jwt.verify_issuer', false);
-        if (($verifyIssuer || isset($payload['iss'])) && $expectedIssuer) {
-            if (! isset($payload['iss']) || $payload['iss'] !== $expectedIssuer) {
+        if ($verifyIssuer || isset($payload['iss'])) {
+            if (! isset($payload['iss']) || ! $this->isIssuerValid($payload['iss'])) {
                 return null;
             }
         }
@@ -93,6 +92,40 @@ class JwtAuthMiddleware
         }
 
         return $payload;
+    }
+
+    private function isIssuerValid(?string $iss): bool
+    {
+        if (! $iss) {
+            return false;
+        }
+
+        $expectedIssuer = config('jwt.issuer', 'smartpos-auth-service');
+        if ($iss === $expectedIssuer || $iss === 'smartpos-auth-service') {
+            return true;
+        }
+
+        $identityUrl = config('jwt.identity_service_url');
+        $appUrl = config('app.url');
+
+        $allowedPrefixes = array_filter(array_unique([
+            $identityUrl ? rtrim((string) $identityUrl, '/') : null,
+            $appUrl ? rtrim((string) $appUrl, '/') : null,
+            ...(app()->environment('local', 'testing') ? [
+                'http://localhost:8001',
+                'http://127.0.0.1:8001',
+                'http://api.smartpos.test',
+                'http://api.smartpos.test:8001',
+            ] : []),
+        ]));
+
+        foreach ($allowedPrefixes as $prefix) {
+            if (! empty($prefix) && str_starts_with($iss, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function base64UrlEncode(string $data): string

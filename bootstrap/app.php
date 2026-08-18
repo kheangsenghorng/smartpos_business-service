@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'outlet.access' => \App\Http\Middleware\EnsureOutletAccess::class,
             'register.access' => \App\Http\Middleware\EnsureRegisterAccess::class,
             'pos_device.access' => \App\Http\Middleware\EnsurePosDeviceAccess::class,
+            'cashier_session.active' => \App\Http\Middleware\EnsureCashierSessionActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

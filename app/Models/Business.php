@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Business extends Model
 {
@@ -21,6 +22,7 @@ class Business extends Model
         'tax_number',
         'registration_number',
         'logo_path',
+        'logo_url',
         'website',
         'description',
         'address',
@@ -28,6 +30,7 @@ class Business extends Model
         'province',
         'postal_code',
         'country_code',
+        'currency_code',
         'default_currency',
         'currency_symbol',
         'receipt_header',
@@ -56,6 +59,11 @@ class Business extends Model
         return 'uuid';
     }
 
+    public function settings(): HasOne
+    {
+        return $this->hasOne(BusinessSetting::class);
+    }
+
     public function businessUsers(): HasMany
     {
         return $this->hasMany(BusinessUser::class);
@@ -74,5 +82,25 @@ class Business extends Model
     public function posDevices(): HasMany
     {
         return $this->hasMany(PosDevice::class);
+    }
+
+    public function cashierSessions(): HasMany
+    {
+        return $this->hasMany(CashierSession::class);
+    }
+
+    public function registerSessions(): HasMany
+    {
+        return $this->hasMany(RegisterSession::class);
+    }
+
+    public function cashDrawerSessions(): HasMany
+    {
+        return $this->hasMany(CashDrawerSession::class);
+    }
+
+    public function cashDrawerMovements(): HasMany
+    {
+        return $this->hasMany(CashDrawerMovement::class);
     }
 }

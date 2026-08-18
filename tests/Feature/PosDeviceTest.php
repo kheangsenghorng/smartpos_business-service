@@ -172,6 +172,15 @@ class PosDeviceTest extends TestCase
         ]);
         $oldAuth->assertStatus(401);
 
+        // Verify non-owner cannot rotate secret
+        $nonOwnerUuid = (string) Str::uuid();
+        BusinessUser::create(['business_id' => $business->id, 'user_uuid' => $nonOwnerUuid, 'is_owner' => false, 'status' => 'active']);
+        
+        $this->withJwtAuth($nonOwnerUuid, ['pos_devices.manage'])
+            ->postJson("/api/v1/pos-devices/{$device->uuid}/rotate-secret")
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Forbidden. Only business owners or administrators can rotate hardware credentials.');
+
         // Verify new password authenticates successfully
         $newAuth = $this->postJson('/api/v1/pos-devices/auth', [
             'machine_id' => 'POS-PP-006',

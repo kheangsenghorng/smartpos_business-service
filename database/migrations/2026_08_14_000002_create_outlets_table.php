@@ -31,6 +31,7 @@ return new class extends Migration
             $table->text('receipt_footer')->nullable();
             $table->decimal('tax_rate', 5, 2)->nullable();
             $table->string('timezone')->nullable()->default('Asia/Jakarta');
+            $table->boolean('is_active')->default(true);
             $table->string('status')->default('active');
             $table->timestamps();
 

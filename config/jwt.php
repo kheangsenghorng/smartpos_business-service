@@ -7,7 +7,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'secret' => env('JWT_SECRET', 'RBX4H7inTQwxHrstXMsHwCGkUWm4JPgAjl7gFN7FLwkTwy28HNN3gYbGZwE3q1UF'),
+    'secret' => env('JWT_SECRET'),
 
     'issuer' => env('JWT_ISSUER', 'smartpos-auth-service'),
 
@@ -16,6 +16,8 @@ return [
     'verify_issuer' => env('JWT_VERIFY_ISSUER', false),
 
     'verify_audience' => env('JWT_VERIFY_AUDIENCE', false),
+
+    'identity_service_url' => env('IDENTITY_SERVICE_URL', 'http://localhost:8001'),
 
     'algo' => env('JWT_ALGO', 'HS256'),
 ];

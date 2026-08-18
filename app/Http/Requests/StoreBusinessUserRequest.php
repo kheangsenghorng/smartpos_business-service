@@ -23,7 +23,7 @@ class StoreBusinessUserRequest extends FormRequest
                 'uuid',
                 Rule::unique('business_users', 'user_uuid')->where('business_id', $businessId),
             ],
-            'outlet_id' => ['nullable', 'exists:outlets,id'],
+            'outlet_id' => ['nullable', Rule::exists('outlets', 'id')->where('business_id', $businessId)],
             'role' => ['nullable', 'string', 'in:owner,manager,cashier,staff,admin'],
             'is_owner' => ['nullable', 'boolean'],
             'pin_code' => ['nullable', 'string', 'digits_between:4,8'],
