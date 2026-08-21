@@ -10,6 +10,19 @@ Independent Laravel microservice responsible for managing business multi-tenancy
 
 ---
 
+## 📚 Documentation & Architecture Reports
+
+Comprehensive documentation and process guides for this microservice:
+
+| Document | Description |
+|---|---|
+| 📖 **[BUSINESS_SERVICE_PROCESS_REPORT.md](BUSINESS_SERVICE_PROCESS_REPORT.md)** | **Master Codebase & Process Report**: End-to-end business workflows, state machines, entity definitions, and execution sequences in code. |
+| 📊 **[PROJECT_REPORT.md](PROJECT_REPORT.md)** | **High-Level Project Report**: Service scope, model architecture, test metrics, and endpoint index. |
+| 📋 **[TASK_CHECKLIST_REPORT.md](TASK_CHECKLIST_REPORT.md)** | **Execution & Architecture Checklist**: Full 14-table database verification, middleware matrices, and test assertions. |
+| 🚀 **[VPS_DEPLOYMENT_GUIDE.md](VPS_DEPLOYMENT_GUIDE.md)** | **Production VPS Deployment Guide**: Step-by-step Hostinger/Ubuntu VPS setup, Docker Compose, Nginx SSL, and GitHub Actions CI/CD. |
+
+---
+
 ## 🏢 Domain Architecture & Overview
 
 ```text
@@ -279,13 +292,126 @@ DB_PASSWORD=root
 JWT_SECRET=your-shared-jwt-secret-from-identity-service
 ```
 
-### 3. Spin Up Docker Containers
+### 3. Spin Up Docker Containers & Seed Database
 ```bash
 # Start microservice, MySQL, Redis, and phpMyAdmin
 docker compose up -d --build
 
 # Run database migrations
 docker compose exec business-service php artisan migrate
+
+# Seed complete demo data across all 12 tables
+docker compose exec business-service php artisan db:seed
+```
+
+---
+
+## 🌱 Demo Seed Data Reference (Ready for Testing)
+
+The database seeder (`DatabaseSeeder.php`) populates all 12 business tables with structured test fixtures:
+
+### 1. Business & Outlets
+| Entity | Code | Name / Details | UUID |
+|---|---|---|---|
+| **Business** | `SPOS-001` | SmartPOS Flagship Store (USD, 10% Tax, 15m Auto-lock) | `c2ba4fe5-d018-4248-9ef4-9fcfc2b1aba7` |
+| **Outlet 1** | `OUT-001` | Downtown Flagship Branch (Main Store) | Auto-generated UUID |
+| **Outlet 2** | `OUT-002` | Airport Express Outlet (Departure Gate 4) | Auto-generated UUID |
+
+### 2. POS Hardware Devices (Machine Auth)
+| Device Code | Machine Password | Device Name | Platform | Assigned Location |
+|---|---|---|---|---|
+| **`POS-PP-001`** | `Password123!` | Front Counter Terminal 1 | Android (Sunmi T2s) | **Downtown Outlet** ➔ `REG-001` |
+| **`POS-AEON-002`** | `Password123!` | Airport Express Tablet | iOS (iPad Pro) | **Airport Outlet** ➔ `REG-003` |
+
+### 3. Staff & Cashier Accounts (Cross-Service Links)
+| Role | Employee Code | User UUID (Identity Service) | Default PIN | Branch Permissions |
+|---|---|---|---|---|
+| **Owner** | `OWN-001` | `97f0693c-91dc-4b11-ab4a-cadcd6c09907` | `1234` | Full access across all outlets |
+| **Manager** | `MGR-001` | `40690f41-3f7c-4f86-a321-8ec0e96af508` | `1234` | Full access across all outlets |
+| **Cashier 1** | `CASH-001` | `0868a936-492f-4c9a-9bcd-bdbb7d36e88b` | `1234` | Downtown Branch (Max Disc: 15%) |
+| **Cashier 2** | `CASH-002` | `7c4d2d7d-8620-4fb3-967a-4a621082cf1f` | `1234` | Airport Express (Max Disc: 10%) |
+
+---
+
+## 📱 2-Tier Flutter POS Authentication & Daily Lifecycle
+
+```text
+[Step 1: Physical POS Terminal Starts]
+       │
+       ▼ (Enter: Device Code + Password)
+[Device Authenticated: 24h Session Token]
+       │
+       ▼ (Enter: Cashier Code + 4-digit PIN)
+[Cashier Authorized & Session Created]
+       │
+       ▼ (Enter: Opening Float e.g. $100)
+[Register Shift & Cash Drawer Opened]
+       │
+       ▼ (Sales, Cash In/Out, Screen Lock/Unlock)
+[POS Active Operations]
+       │
+       ▼ (Count Final Cash & Reconcile)
+[Shift Closed & Settlement Summary]
+```
+
+### 1. Step 1: Device Authentication
+```http
+POST /api/v1/pos-devices/auth
+Content-Type: application/json
+
+{
+  "device_code": "POS-PP-001",
+  "password": "Password123!"
+}
+```
+**Response:** Returns `session_token`, `device_uuid`, `business_uuid`, `outlet_uuid`, `register_uuid`.
+
+### 2. Step 2: Cashier Shift Start
+```http
+POST /api/v1/outlets/{outlet_uuid}/cashier-sessions/start
+Authorization: Bearer {identity_access_token}
+Content-Type: application/json
+
+{
+  "register_uuid": "...",
+  "pos_device_uuid": "...",
+  "user_uuid": "0868a936-492f-4c9a-9bcd-bdbb7d36e88b"
+}
+```
+
+### 3. Step 3: Open Register Shift (Float)
+```http
+POST /api/v1/outlets/{outlet_uuid}/registers/{register_uuid}/shifts/open
+Authorization: Bearer {identity_access_token}
+Content-Type: application/json
+
+{
+  "opening_cash": 100.00,
+  "notes": "Morning cash float"
+}
+```
+
+### 4. Step 4: Fast Unlock Screen via PIN
+```http
+POST /api/v1/outlets/{outlet_uuid}/cashier-sessions/{session_uuid}/unlock
+Authorization: Bearer {identity_access_token}
+Content-Type: application/json
+
+{
+  "pin_code": "1234"
+}
+```
+
+### 5. Step 5: Close Shift & Count Cash
+```http
+POST /api/v1/outlets/{outlet_uuid}/registers/{register_uuid}/shifts/{shift_uuid}/close
+Authorization: Bearer {identity_access_token}
+Content-Type: application/json
+
+{
+  "closing_cash": 1450.00,
+  "notes": "Evening shift reconciled"
+}
 ```
 
 ---
@@ -296,3 +422,14 @@ Interactive OpenAPI / Swagger documentation is powered by **Scramble**:
 - **Direct Service URL**: [`http://localhost:8002/docs/business`](http://localhost:8002/docs/business)
 - **OpenAPI Schema (JSON)**: [`http://localhost:8002/docs/business.json`](http://localhost:8002/docs/business.json)
 - **Via API Gateway**: [`http://api.smartpos.test/docs/business`](http://api.smartpos.test/docs/business)
+
+---
+
+## 📑 Additional Documentation & Resources
+
+- [Master Codebase & Process Documentation (BUSINESS_SERVICE_PROCESS_REPORT.md)](BUSINESS_SERVICE_PROCESS_REPORT.md)
+- [Project Overview & Scope Report (PROJECT_REPORT.md)](PROJECT_REPORT.md)
+- [Architecture & Verification Task Checklist (TASK_CHECKLIST_REPORT.md)](TASK_CHECKLIST_REPORT.md)
+- [Production VPS Deployment & Operations Guide (VPS_DEPLOYMENT_GUIDE.md)](VPS_DEPLOYMENT_GUIDE.md)
+
+

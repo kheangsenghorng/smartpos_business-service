@@ -29,6 +29,7 @@ class StoreBusinessRequest extends FormRequest
             'province' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country_code' => ['nullable', 'string', 'max:10'],
+            'currency_code' => ['nullable', 'string', 'max:3'],
             'default_currency' => ['nullable', 'string', 'max:10'],
             'currency_symbol' => ['nullable', 'string', 'max:10'],
             'receipt_header' => ['nullable', 'string'],

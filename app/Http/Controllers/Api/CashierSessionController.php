@@ -13,6 +13,7 @@ use App\Models\Register;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class CashierSessionController extends Controller
 {
@@ -153,6 +154,10 @@ class CashierSessionController extends Controller
 
     /**
      * Unlock the specified locked cashier session.
+     *
+     * SEC-02 FIX: A cashier session cannot be unlocked via PIN if the business
+     * user has no pin_code_hash set. Only a platform admin (jwt role: admin)
+     * may unlock a pin-less session, preventing unauthorized terminal access.
      */
     public function unlock(UnlockCashierSessionRequest $request, Outlet $outlet, CashierSession $cashierSession): JsonResponse
     {
@@ -168,10 +173,35 @@ class CashierSessionController extends Controller
 
         $cashierSession->load('businessUser');
         $businessUser = $cashierSession->businessUser;
+        $isAdmin = in_array('admin', $request->attributes->get('jwt_roles', []), true);
 
-        if ($businessUser && $businessUser->pin_code_hash) {
+        // SEC-02 FIX: Block unlock if the cashier has no PIN configured.
+        // Platform admins are exempt from this check and may unlock any session.
+        if (! $isAdmin) {
+            if (! $businessUser || ! $businessUser->pin_code_hash) {
+                Log::warning('[SECURITY_CASHIER_UNLOCK_BLOCKED] Unlock attempted on PIN-less cashier session', [
+                    'cashier_session_uuid' => $cashierSession->uuid ?? $cashierSession->id,
+                    'outlet_id' => $outlet->id,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->header('User-Agent'),
+                    'timestamp' => now()->toIso8601String(),
+                ]);
+
+                return response()->json([
+                    'message' => 'This cashier session cannot be unlocked: the cashier has no PIN code set. '.
+                                 'Please ask a platform administrator to unlock, or set a PIN code via the Business User settings.',
+                ], 403);
+            }
+
             $pin = (string) $request->input('pin_code', '');
             if ($pin === '' || ! Hash::check($pin, $businessUser->pin_code_hash)) {
+                Log::warning('[SECURITY_CASHIER_PIN_FAILED] Invalid cashier PIN unlock attempt', [
+                    'cashier_session_uuid' => $cashierSession->uuid ?? $cashierSession->id,
+                    'outlet_id' => $outlet->id,
+                    'ip' => $request->ip(),
+                    'timestamp' => now()->toIso8601String(),
+                ]);
+
                 return response()->json([
                     'message' => 'Invalid cashier PIN code.',
                 ], 401);

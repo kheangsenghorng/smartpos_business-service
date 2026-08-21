@@ -66,11 +66,18 @@ class CashierSessionTest extends TestCase
         $lockResponse->assertStatus(200)
             ->assertJsonPath('data.status', 'locked');
 
-        // 4. Unlock Session (without PIN when user has no PIN)
-        $unlockResponse = $this->withJwtAuth($userUuid, ['pos_devices.use'])
+        // 4. SEC-02 FIX: Unlock without PIN when user has no PIN set must be BLOCKED (403)
+        $unlockNoPinResponse = $this->withJwtAuth($userUuid, ['pos_devices.use'])
             ->postJson("/api/v1/outlets/{$outlet->uuid}/cashier-sessions/{$sessionUuid}/unlock");
 
-        $unlockResponse->assertStatus(200)
+        $unlockNoPinResponse->assertStatus(403)
+            ->assertJsonStructure(['message']);
+
+        // 4b. Admin role can override and unlock a PIN-less session
+        $adminUnlockResponse = $this->withJwtAuth($userUuid, ['pos_devices.use'], ['admin'])
+            ->postJson("/api/v1/outlets/{$outlet->uuid}/cashier-sessions/{$sessionUuid}/unlock");
+
+        $adminUnlockResponse->assertStatus(200)
             ->assertJsonPath('data.status', 'active');
 
         // 5. Set a PIN on user and verify wrong PIN is rejected on unlock

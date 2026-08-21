@@ -7,6 +7,14 @@ use Illuminate\Support\Str;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        \Illuminate\Support\Facades\RateLimiter::for('api', function () {
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute(10000);
+        });
+    }
     protected function createJwtToken(?string $userUuid = null, array $permissions = [], array $roles = ['user']): string
     {
         $userUuid = $userUuid ?? (string) Str::uuid();

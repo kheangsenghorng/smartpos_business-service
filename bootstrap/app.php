@@ -17,6 +17,9 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 
+use App\Http\Middleware\EnsureWarehouseAccess;
+use App\Http\Middleware\EnsureWarehouseLocationAccess;
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -38,6 +41,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'outlet.access' => EnsureOutletAccess::class,
             'register.access' => EnsureRegisterAccess::class,
             'pos_device.access' => EnsurePosDeviceAccess::class,
+            'warehouse.access' => EnsureWarehouseAccess::class,
+            'warehouse_location.access' => EnsureWarehouseLocationAccess::class,
             'cashier_session.active' => EnsureCashierSessionActive::class,
         ]);
     })

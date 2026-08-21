@@ -240,23 +240,27 @@ class PosDeviceController extends Controller
     public function authenticate(AuthenticatePosDeviceRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $machineIdentifier = $data['machine_id'] ?? $data['device_code'] ?? null;
+        $machinePassword = $data['machine_password'] ?? $data['password'] ?? null;
 
-        $device = PosDevice::where('machine_id', $data['machine_id'])
+        $device = PosDevice::where('machine_id', $machineIdentifier)
+            ->orWhere('device_code', $machineIdentifier)
+            ->orWhere('uuid', $machineIdentifier)
             ->with(['business', 'outlet', 'register', 'credentials'])
             ->first();
 
         $isAuthenticated = false;
-        if ($device) {
-            if (Hash::check($data['machine_password'], $device->machine_password_hash)) {
+        if ($device && $machinePassword !== null) {
+            if (Hash::check($machinePassword, $device->machine_password_hash)) {
                 $isAuthenticated = true;
-            } elseif ($device->activeCredential && Hash::check($data['machine_password'], $device->activeCredential->secret_hash)) {
+            } elseif ($device->activeCredential && Hash::check($machinePassword, $device->activeCredential->secret_hash)) {
                 $isAuthenticated = true;
             }
         }
 
         if (! $device || ! $isAuthenticated) {
             Log::warning('[SECURITY_POS_AUTH_FAILED] Invalid POS device authentication attempt', [
-                'machine_id' => $data['machine_id'] ?? null,
+                'machine_id' => $machineIdentifier,
                 'ip' => $request->ip(),
                 'user_agent' => $request->header('User-Agent'),
                 'timestamp' => now()->toIso8601String(),
@@ -316,6 +320,15 @@ class PosDeviceController extends Controller
             'message' => 'POS device authenticated successfully.',
             'session_token' => $rawSessionToken,
             'device_session_uuid' => $deviceSession->uuid,
+            'data' => [
+                'device_uuid' => $device->uuid,
+                'device_code' => $device->device_code ?? $device->machine_id,
+                'device_name' => $device->device_name,
+                'business_uuid' => $device->business?->uuid,
+                'outlet_uuid' => $device->outlet?->uuid,
+                'register_uuid' => $device->register?->uuid,
+                'device_token' => $rawSessionToken,
+            ],
             'context' => [
                 'pos_device' => $device,
                 'business' => $device->business,

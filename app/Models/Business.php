@@ -74,6 +74,11 @@ class Business extends Model
         return $this->hasMany(Outlet::class);
     }
 
+    public function warehouses(): HasMany
+    {
+        return $this->hasMany(Warehouse::class);
+    }
+
     public function registers(): HasMany
     {
         return $this->hasMany(Register::class);

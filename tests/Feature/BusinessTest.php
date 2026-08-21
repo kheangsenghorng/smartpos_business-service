@@ -14,6 +14,8 @@ class BusinessTest extends TestCase
 
     public function test_can_create_business(): void
     {
+        \Illuminate\Support\Facades\Mail::fake();
+
         $userUuid = (string) Str::uuid();
 
         $response = $this->withJwtAuth($userUuid, ['businesses.create'])
@@ -26,7 +28,19 @@ class BusinessTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('data.name', 'Kopi Mantap')
-            ->assertJsonPath('data.code', 'BIZ-001');
+            ->assertJsonPath('data.code', 'BIZ-001')
+            ->assertJsonStructure([
+                'data',
+                'provisioned' => [
+                    'outlet',
+                    'register',
+                    'pos_device',
+                    'credentials' => [
+                        'device_code',
+                        'machine_password',
+                    ],
+                ],
+            ]);
 
         $this->assertDatabaseHas('businesses', [
             'code' => 'BIZ-001',
@@ -40,6 +54,30 @@ class BusinessTest extends TestCase
             'is_owner' => true,
             'status' => 'active',
         ]);
+
+        // Assert Default Outlet auto-created
+        $this->assertDatabaseHas('outlets', [
+            'business_id' => $business->id,
+            'code' => 'OUT-001',
+            'is_main_outlet' => true,
+        ]);
+
+        // Assert Default Register auto-created
+        $this->assertDatabaseHas('registers', [
+            'business_id' => $business->id,
+            'code' => 'REG-001',
+        ]);
+
+        // Assert Default POS Device auto-created
+        $this->assertDatabaseHas('pos_devices', [
+            'business_id' => $business->id,
+            'status' => 'active',
+        ]);
+
+        // Assert Credentials Email Sent to Business Email
+        \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\PosDeviceCredentialsMail::class, function ($mail) use ($business) {
+            return $mail->hasTo('contact@kopimantap.test') && $mail->business->id === $business->id;
+        });
     }
 
     public function test_can_list_user_businesses(): void
@@ -178,5 +216,45 @@ class BusinessTest extends TestCase
             'currency_symbol' => 'Rp',
             'is_tax_inclusive' => true,
         ]);
+    }
+
+    public function test_can_create_business_with_currency_code(): void
+    {
+        $userUuid = (string) Str::uuid();
+
+        $response = $this->withJwtAuth($userUuid, ['businesses.create'])
+            ->postJson('/api/v1/businesses', [
+                'name' => 'Phnom Penh Branch',
+                'code' => 'BIZ-PP-01',
+                'currency_code' => 'KHR',
+                'default_currency' => 'KHR',
+                'timezone' => 'Asia/Phnom_Penh',
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.currency_code', 'KHR');
+
+        $business = Business::where('code', 'BIZ-PP-01')->first();
+        $this->assertNotNull($business->settings);
+        $this->assertEquals('KHR', $business->settings->currency_code);
+    }
+
+    public function test_can_create_business_with_long_or_placeholder_currency_without_database_error(): void
+    {
+        $userUuid = (string) Str::uuid();
+
+        $response = $this->withJwtAuth($userUuid, ['businesses.create'])
+            ->postJson('/api/v1/businesses', [
+                'name' => 'Swagger Test Store',
+                'code' => 'BIZ-SWAG-01',
+                'default_currency' => 'string',
+                'timezone' => 'string',
+            ]);
+
+        $response->assertStatus(201);
+
+        $business = Business::where('code', 'BIZ-SWAG-01')->first();
+        $this->assertNotNull($business->settings);
+        $this->assertEquals('STR', $business->settings->currency_code);
     }
 }

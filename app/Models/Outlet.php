@@ -67,6 +67,11 @@ class Outlet extends Model
         return $this->hasMany(Register::class);
     }
 
+    public function warehouses(): HasMany
+    {
+        return $this->hasMany(Warehouse::class);
+    }
+
     public function businessUsers(): HasMany
     {
         return $this->hasMany(BusinessUser::class);

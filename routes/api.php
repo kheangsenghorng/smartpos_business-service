@@ -47,5 +47,7 @@ Route::prefix('v1')->group(function () {
         require __DIR__.'/api/cashier_sessions.php';
 
         require __DIR__.'/api/shifts.php';
+
+        require __DIR__.'/api/warehouses.php';
     });
 });

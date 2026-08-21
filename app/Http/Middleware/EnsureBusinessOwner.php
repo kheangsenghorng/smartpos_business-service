@@ -7,6 +7,8 @@ use App\Models\BusinessUser;
 use App\Models\Outlet;
 use App\Models\PosDevice;
 use App\Models\Register;
+use App\Models\Warehouse;
+use App\Models\WarehouseLocation;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -83,6 +85,28 @@ class EnsureBusinessOwner
             $posDevice = PosDevice::where('uuid', $posDeviceParam)->with('business')->first();
 
             return $posDevice?->business;
+        }
+
+        $warehouseParam = $request->route('warehouse');
+        if ($warehouseParam instanceof Warehouse) {
+            return $warehouseParam->business;
+        }
+        if (is_string($warehouseParam)) {
+            $warehouse = Warehouse::where('uuid', $warehouseParam)->with('business')->first();
+
+            return $warehouse?->business;
+        }
+
+        $locationParam = $request->route('warehouseLocation')
+            ?? $request->route('warehouse_location')
+            ?? $request->route('location');
+        if ($locationParam instanceof WarehouseLocation) {
+            return $locationParam->warehouse?->business;
+        }
+        if (is_string($locationParam)) {
+            $location = WarehouseLocation::where('uuid', $locationParam)->with('warehouse.business')->first();
+
+            return $location?->warehouse?->business;
         }
 
         return null;

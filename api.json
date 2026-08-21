@@ -59,6 +59,7 @@
         "/businesses": {
             "get": {
                 "operationId": "business.index",
+                "summary": "List all active businesses associated with the current user",
                 "tags": [
                     "Business"
                 ],
@@ -88,6 +89,7 @@
             },
             "post": {
                 "operationId": "business.store",
+                "summary": "Create a new business and auto-provision default outlet, register, POS device, and email machine credentials",
                 "tags": [
                     "Business"
                 ],
@@ -111,7 +113,7 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "const": "Business created successfully."
+                                            "const": "Business created successfully. Default outlet, register, and POS terminal have been provisioned."
                                         },
                                         "data": {
                                             "anyOf": [
@@ -122,11 +124,47 @@
                                                     "type": "null"
                                                 }
                                             ]
+                                        },
+                                        "provisioned": {
+                                            "type": "object",
+                                            "properties": {
+                                                "outlet": {
+                                                    "$ref": "#/components/schemas/Outlet"
+                                                },
+                                                "register": {
+                                                    "$ref": "#/components/schemas/Register"
+                                                },
+                                                "pos_device": {
+                                                    "$ref": "#/components/schemas/PosDevice"
+                                                },
+                                                "credentials": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "device_code": {
+                                                            "type": "string"
+                                                        },
+                                                        "machine_password": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "device_code",
+                                                        "machine_password"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "outlet",
+                                                "register",
+                                                "pos_device",
+                                                "credentials"
+                                            ]
                                         }
                                     },
                                     "required": [
                                         "message",
-                                        "data"
+                                        "data",
+                                        "provisioned"
                                     ]
                                 }
                             }
@@ -141,6 +179,7 @@
         "/businesses/{business}": {
             "get": {
                 "operationId": "business.show",
+                "summary": "Display the specified business with outlets, registers, and POS devices",
                 "tags": [
                     "Business"
                 ],
@@ -181,6 +220,7 @@
             },
             "put": {
                 "operationId": "business.update",
+                "summary": "Update the specified business details",
                 "tags": [
                     "Business"
                 ],
@@ -245,6 +285,7 @@
             },
             "delete": {
                 "operationId": "business.destroy",
+                "summary": "Delete the specified business",
                 "tags": [
                     "Business"
                 ],
@@ -285,9 +326,111 @@
                 }
             }
         },
+        "/businesses/{business}/settings": {
+            "get": {
+                "operationId": "businessSetting.show",
+                "summary": "Display POS settings for the specified business",
+                "tags": [
+                    "BusinessSetting"
+                ],
+                "parameters": [
+                    {
+                        "name": "business",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BusinessSetting"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "businessSetting.update",
+                "summary": "Update POS settings for the specified business",
+                "tags": [
+                    "BusinessSetting"
+                ],
+                "parameters": [
+                    {
+                        "name": "business",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateBusinessSettingRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Business POS settings updated successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BusinessSetting"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/businesses/{business}/users": {
             "get": {
                 "operationId": "businessUser.index",
+                "summary": "List all users associated with the specified business",
                 "tags": [
                     "BusinessUser"
                 ],
@@ -331,6 +474,7 @@
             },
             "post": {
                 "operationId": "businessUser.store",
+                "summary": "Add a user to the specified business with role and status",
                 "tags": [
                     "BusinessUser"
                 ],
@@ -391,6 +535,7 @@
         "/businesses/{business}/users/{businessUser}": {
             "put": {
                 "operationId": "businessUser.update",
+                "summary": "Update business user membership details and permissions",
                 "tags": [
                     "BusinessUser"
                 ],
@@ -447,16 +592,17 @@
                             }
                         }
                     },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     }
                 }
             },
             "delete": {
                 "operationId": "businessUser.destroy",
+                "summary": "Remove a user from the specified business",
                 "tags": [
                     "BusinessUser"
                 ],
@@ -528,6 +674,7 @@
         "/businesses/{business}/users/{businessUser}/suspend": {
             "post": {
                 "operationId": "businessUser.suspend",
+                "summary": "Suspend a user's membership in the specified business",
                 "tags": [
                     "BusinessUser"
                 ],
@@ -600,9 +747,1113 @@
                 }
             }
         },
+        "/businesses/{business}/users/{businessUser}/outlets": {
+            "get": {
+                "operationId": "businessUserOutlet.index",
+                "summary": "List all outlet assignments for the specified business user",
+                "tags": [
+                    "BusinessUserOutlet"
+                ],
+                "parameters": [
+                    {
+                        "name": "business",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "businessUser",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business user UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BusinessUserOutlet"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "businessUserOutlet.store",
+                "summary": "Assign an outlet to the specified business user",
+                "tags": [
+                    "BusinessUserOutlet"
+                ],
+                "parameters": [
+                    {
+                        "name": "business",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "businessUser",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business user UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AssignBusinessUserOutletRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Outlet assigned to user successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BusinessUserOutlet"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/businesses/{business}/users/{businessUser}/outlets/{outlet}": {
+            "delete": {
+                "operationId": "businessUserOutlet.destroy",
+                "summary": "Remove an outlet assignment from the specified business user",
+                "tags": [
+                    "BusinessUserOutlet"
+                ],
+                "parameters": [
+                    {
+                        "name": "business",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "businessUser",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business user UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Outlet assignment removed successfully."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/outlets/{outlet}/registers/{register}/drawers/{cashDrawerSession}": {
+            "get": {
+                "operationId": "cashDrawer.show",
+                "summary": "Display the specified cash drawer session summary and balance",
+                "tags": [
+                    "CashDrawer"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "register",
+                        "in": "path",
+                        "required": true,
+                        "description": "The register UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "cashDrawerSession",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cash drawer session UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CashDrawerSession"
+                                        },
+                                        "current_balance": {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "current_balance"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/outlets/{outlet}/registers/{register}/drawers/{cashDrawerSession}/movements": {
+            "get": {
+                "operationId": "cashDrawer.movements",
+                "summary": "List all cash movements for the specified cash drawer session",
+                "tags": [
+                    "CashDrawer"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "register",
+                        "in": "path",
+                        "required": true,
+                        "description": "The register UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "cashDrawerSession",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cash drawer session UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CashDrawerMovement"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "cashDrawer.recordMovement",
+                "summary": "Record a new cash movement (cash in, cash out, payout, deposit, adjustment, sale, refund) into the cash drawer",
+                "tags": [
+                    "CashDrawer"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "register",
+                        "in": "path",
+                        "required": true,
+                        "description": "The register UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "cashDrawerSession",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cash drawer session UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RecordCashMovementRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Cash movement recorded successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/CashDrawerMovement"
+                                        },
+                                        "current_balance": {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data",
+                                        "current_balance"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/businesses/{business}/users/{businessUser}/cashier-profile": {
+            "get": {
+                "operationId": "cashierProfile.show",
+                "summary": "Display cashier POS profile and permissions for the specified business user",
+                "tags": [
+                    "CashierProfile"
+                ],
+                "parameters": [
+                    {
+                        "name": "business",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "businessUser",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business user UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CashierProfile"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "cashierProfile.update",
+                "summary": "Update cashier POS profile permissions for the specified business user",
+                "tags": [
+                    "CashierProfile"
+                ],
+                "parameters": [
+                    {
+                        "name": "business",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "businessUser",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business user UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateCashierProfileRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Cashier profile updated successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/CashierProfile"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/outlets/{outlet}/cashier-sessions/start": {
+            "post": {
+                "operationId": "cashierSession.store",
+                "summary": "Start a new cashier session at the specified outlet",
+                "tags": [
+                    "CashierSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StartCashierSessionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Cashier session started successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/CashierSession"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/outlets/{outlet}/cashier-sessions/current": {
+            "get": {
+                "operationId": "cashierSession.current",
+                "summary": "Get the current active/locked cashier session for a register or device in this outlet",
+                "tags": [
+                    "CashierSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "register_uuid",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "pos_device_uuid",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "anyOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/CashierSession"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "No active cashier session found."
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/outlets/{outlet}/cashier-sessions/{cashierSession}/lock": {
+            "post": {
+                "operationId": "cashierSession.lock",
+                "summary": "Lock the specified cashier session",
+                "tags": [
+                    "CashierSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "cashierSession",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cashier session UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Cashier session locked successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/CashierSession"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/outlets/{outlet}/cashier-sessions/{cashierSession}/unlock": {
+            "post": {
+                "operationId": "cashierSession.unlock",
+                "summary": "Unlock the specified locked cashier session",
+                "tags": [
+                    "CashierSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "cashierSession",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cashier session UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UnlockCashierSessionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Cashier session unlocked successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/CashierSession"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Invalid cashier PIN code."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/outlets/{outlet}/cashier-sessions/{cashierSession}/end": {
+            "post": {
+                "operationId": "cashierSession.end",
+                "summary": "End the specified cashier session",
+                "tags": [
+                    "CashierSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "cashierSession",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cashier session UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Cashier session ended successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/CashierSession"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Session is already ended."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/pos-devices/{posDevice}/sessions": {
+            "get": {
+                "operationId": "deviceSession.index",
+                "summary": "List all active and past sessions for the specified POS device",
+                "tags": [
+                    "DeviceSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "posDevice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The pos device UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "current_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DeviceSession"
+                                            }
+                                        },
+                                        "first_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "from": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ],
+                                            "minimum": 1
+                                        },
+                                        "last_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "last_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "links": {
+                                            "type": "array",
+                                            "description": "Generated paginator links.",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "url": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "label": {
+                                                        "type": "string"
+                                                    },
+                                                    "active": {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "url",
+                                                    "label",
+                                                    "active"
+                                                ]
+                                            }
+                                        },
+                                        "next_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "path": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "description": "Base path for paginator generated URLs."
+                                        },
+                                        "per_page": {
+                                            "type": "integer",
+                                            "description": "Number of items shown per page.",
+                                            "minimum": 0
+                                        },
+                                        "prev_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "to": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ],
+                                            "description": "Number of the last item in the slice.",
+                                            "minimum": 1
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "description": "Total number of items being paginated.",
+                                            "minimum": 0
+                                        }
+                                    },
+                                    "required": [
+                                        "current_page",
+                                        "data",
+                                        "first_page_url",
+                                        "from",
+                                        "last_page_url",
+                                        "last_page",
+                                        "links",
+                                        "next_page_url",
+                                        "path",
+                                        "per_page",
+                                        "prev_page_url",
+                                        "to",
+                                        "total"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/pos-devices/{posDevice}/sessions/{deviceSession}/revoke": {
+            "post": {
+                "operationId": "deviceSession.revoke",
+                "summary": "Revoke the specified device session",
+                "tags": [
+                    "DeviceSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "posDevice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The pos device UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "deviceSession",
+                        "in": "path",
+                        "required": true,
+                        "description": "The device session UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Device session revoked successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/DeviceSession"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
         "/businesses/{business}/outlets": {
             "get": {
                 "operationId": "outlet.index",
+                "summary": "List all outlets for the specified business with device counts",
                 "tags": [
                     "Outlet"
                 ],
@@ -646,6 +1897,7 @@
             },
             "post": {
                 "operationId": "outlet.store",
+                "summary": "Create a new outlet under the specified business",
                 "tags": [
                     "Outlet"
                 ],
@@ -706,6 +1958,7 @@
         "/outlets/{outlet}": {
             "get": {
                 "operationId": "outlet.show",
+                "summary": "Display the specified outlet details with registers and POS devices",
                 "tags": [
                     "Outlet"
                 ],
@@ -746,6 +1999,7 @@
             },
             "put": {
                 "operationId": "outlet.update",
+                "summary": "Update the specified outlet details",
                 "tags": [
                     "Outlet"
                 ],
@@ -810,6 +2064,7 @@
             },
             "delete": {
                 "operationId": "outlet.destroy",
+                "summary": "Delete the specified outlet",
                 "tags": [
                     "Outlet"
                 ],
@@ -853,11 +2108,11 @@
         "/pos-devices/auth": {
             "post": {
                 "operationId": "posDevice.authenticate",
+                "summary": "Authenticate a POS device using machine ID and machine password",
                 "tags": [
                     "PosDevice"
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
@@ -877,6 +2132,56 @@
                                         "message": {
                                             "type": "string",
                                             "const": "POS device authenticated successfully."
+                                        },
+                                        "session_token": {
+                                            "type": "string"
+                                        },
+                                        "device_session_uuid": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "device_uuid": {
+                                                    "type": "string"
+                                                },
+                                                "device_code": {
+                                                    "type": "string"
+                                                },
+                                                "device_name": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "business_uuid": {
+                                                    "type": "string"
+                                                },
+                                                "outlet_uuid": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "register_uuid": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "device_token": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "device_uuid",
+                                                "device_code",
+                                                "device_name",
+                                                "business_uuid",
+                                                "outlet_uuid",
+                                                "register_uuid",
+                                                "device_token"
+                                            ]
                                         },
                                         "context": {
                                             "type": "object",
@@ -925,6 +2230,9 @@
                                     },
                                     "required": [
                                         "message",
+                                        "session_token",
+                                        "device_session_uuid",
+                                        "data",
                                         "context"
                                     ]
                                 }
@@ -1006,6 +2314,7 @@
         "/outlets/{outlet}/pos-devices": {
             "get": {
                 "operationId": "posDevice.index",
+                "summary": "List all POS devices registered under the specified outlet",
                 "tags": [
                     "PosDevice"
                 ],
@@ -1049,6 +2358,7 @@
             },
             "post": {
                 "operationId": "posDevice.store",
+                "summary": "Register a new POS device under the specified outlet and generate machine credentials",
                 "tags": [
                     "PosDevice"
                 ],
@@ -1101,11 +2411,11 @@
                             }
                         }
                     },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     }
                 }
             }
@@ -1113,6 +2423,7 @@
         "/pos-devices/{posDevice}": {
             "get": {
                 "operationId": "posDevice.show",
+                "summary": "Display the specified POS device with business, outlet, and register details",
                 "tags": [
                     "PosDevice"
                 ],
@@ -1153,6 +2464,7 @@
             },
             "put": {
                 "operationId": "posDevice.update",
+                "summary": "Update the specified POS device configuration and associations",
                 "tags": [
                     "PosDevice"
                 ],
@@ -1207,11 +2519,11 @@
                             }
                         }
                     },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     }
                 }
             }
@@ -1219,6 +2531,7 @@
         "/pos-devices/{posDevice}/activate": {
             "post": {
                 "operationId": "posDevice.activate",
+                "summary": "Activate the specified POS device for operations",
                 "tags": [
                     "PosDevice"
                 ],
@@ -1266,6 +2579,7 @@
         "/pos-devices/{posDevice}/revoke": {
             "post": {
                 "operationId": "posDevice.revoke",
+                "summary": "Revoke access for the specified POS device",
                 "tags": [
                     "PosDevice"
                 ],
@@ -1313,6 +2627,7 @@
         "/pos-devices/{posDevice}/lock": {
             "post": {
                 "operationId": "posDevice.lock",
+                "summary": "Lock the specified POS device to temporarily disable access",
                 "tags": [
                     "PosDevice"
                 ],
@@ -1357,9 +2672,88 @@
                 }
             }
         },
+        "/pos-devices/{posDevice}/rotate-secret": {
+            "post": {
+                "operationId": "posDevice.rotateSecret",
+                "summary": "Rotate credentials (machine password) for the specified POS device",
+                "tags": [
+                    "PosDevice"
+                ],
+                "parameters": [
+                    {
+                        "name": "posDevice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The pos device UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "POS device credentials rotated successfully. Save the new machine password now as it will not be shown again."
+                                        },
+                                        "machine_password": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/PosDevice"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "machine_password",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Forbidden. Only business owners or administrators can rotate hardware credentials."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
         "/outlets/{outlet}/registers": {
             "get": {
                 "operationId": "register.index",
+                "summary": "List all cash registers for the specified outlet with device counts",
                 "tags": [
                     "Register"
                 ],
@@ -1403,6 +2797,7 @@
             },
             "post": {
                 "operationId": "register.store",
+                "summary": "Create a new cash register under the specified outlet",
                 "tags": [
                     "Register"
                 ],
@@ -1463,6 +2858,7 @@
         "/registers/{register}": {
             "get": {
                 "operationId": "register.show",
+                "summary": "Display the specified cash register details with associated POS devices",
                 "tags": [
                     "Register"
                 ],
@@ -1503,6 +2899,7 @@
             },
             "put": {
                 "operationId": "register.update",
+                "summary": "Update the specified cash register details",
                 "tags": [
                     "Register"
                 ],
@@ -1567,6 +2964,7 @@
             },
             "delete": {
                 "operationId": "register.destroy",
+                "summary": "Delete the specified cash register",
                 "tags": [
                     "Register"
                 ],
@@ -1606,6 +3004,943 @@
                     }
                 }
             }
+        },
+        "/outlets/{outlet}/registers/{register}/shifts": {
+            "get": {
+                "operationId": "registerSession.index",
+                "summary": "List shift sessions for the specified register",
+                "tags": [
+                    "RegisterSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "register",
+                        "in": "path",
+                        "required": true,
+                        "description": "The register UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "current_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/RegisterSession"
+                                            }
+                                        },
+                                        "first_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "from": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ],
+                                            "minimum": 1
+                                        },
+                                        "last_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "last_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "links": {
+                                            "type": "array",
+                                            "description": "Generated paginator links.",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "url": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "label": {
+                                                        "type": "string"
+                                                    },
+                                                    "active": {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "url",
+                                                    "label",
+                                                    "active"
+                                                ]
+                                            }
+                                        },
+                                        "next_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "path": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "description": "Base path for paginator generated URLs."
+                                        },
+                                        "per_page": {
+                                            "type": "integer",
+                                            "description": "Number of items shown per page.",
+                                            "minimum": 0
+                                        },
+                                        "prev_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "to": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ],
+                                            "description": "Number of the last item in the slice.",
+                                            "minimum": 1
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "description": "Total number of items being paginated.",
+                                            "minimum": 0
+                                        }
+                                    },
+                                    "required": [
+                                        "current_page",
+                                        "data",
+                                        "first_page_url",
+                                        "from",
+                                        "last_page_url",
+                                        "last_page",
+                                        "links",
+                                        "next_page_url",
+                                        "path",
+                                        "per_page",
+                                        "prev_page_url",
+                                        "to",
+                                        "total"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/outlets/{outlet}/registers/{register}/shifts/current": {
+            "get": {
+                "operationId": "registerSession.current",
+                "summary": "Get the current open shift session for the register",
+                "tags": [
+                    "RegisterSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "register",
+                        "in": "path",
+                        "required": true,
+                        "description": "The register UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "anyOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/RegisterSession"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "No active open shift found for this register."
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/outlets/{outlet}/registers/{register}/shifts/open": {
+            "post": {
+                "operationId": "registerSession.open",
+                "summary": "Open a new register shift and initialize the cash drawer session",
+                "tags": [
+                    "RegisterSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "register",
+                        "in": "path",
+                        "required": true,
+                        "description": "The register UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/OpenRegisterSessionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Register shift opened successfully."
+                                        },
+                                        "data": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/RegisterSession"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/outlets/{outlet}/registers/{register}/shifts/{registerSession}/close": {
+            "post": {
+                "operationId": "registerSession.close",
+                "summary": "Close the specified register shift and finalize drawer balance",
+                "tags": [
+                    "RegisterSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "outlet",
+                        "in": "path",
+                        "required": true,
+                        "description": "The outlet UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "register",
+                        "in": "path",
+                        "required": true,
+                        "description": "The register UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "registerSession",
+                        "in": "path",
+                        "required": true,
+                        "description": "The register session UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CloseRegisterSessionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Register shift closed successfully."
+                                        },
+                                        "data": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/RegisterSession"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/businesses/{business}/warehouses": {
+            "get": {
+                "operationId": "warehouse.index",
+                "summary": "List all warehouses for the specified business with location counts",
+                "tags": [
+                    "Warehouse"
+                ],
+                "parameters": [
+                    {
+                        "name": "business",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "outlet_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Warehouse"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "warehouse.store",
+                "summary": "Create a new warehouse under the specified business",
+                "tags": [
+                    "Warehouse"
+                ],
+                "parameters": [
+                    {
+                        "name": "business",
+                        "in": "path",
+                        "required": true,
+                        "description": "The business UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreWarehouseRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Warehouse created successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Warehouse"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/warehouses/{warehouse}": {
+            "get": {
+                "operationId": "warehouse.show",
+                "summary": "Display the specified warehouse details with outlet and locations",
+                "tags": [
+                    "Warehouse"
+                ],
+                "parameters": [
+                    {
+                        "name": "warehouse",
+                        "in": "path",
+                        "required": true,
+                        "description": "The warehouse UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Warehouse"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "warehouse.update",
+                "summary": "Update the specified warehouse details",
+                "tags": [
+                    "Warehouse"
+                ],
+                "parameters": [
+                    {
+                        "name": "warehouse",
+                        "in": "path",
+                        "required": true,
+                        "description": "The warehouse UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateWarehouseRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Warehouse updated successfully."
+                                        },
+                                        "data": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/Warehouse"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "warehouse.destroy",
+                "summary": "Delete the specified warehouse",
+                "tags": [
+                    "Warehouse"
+                ],
+                "parameters": [
+                    {
+                        "name": "warehouse",
+                        "in": "path",
+                        "required": true,
+                        "description": "The warehouse UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Warehouse deleted successfully."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/warehouses/{warehouse}/locations": {
+            "get": {
+                "operationId": "warehouseLocation.index",
+                "summary": "List all locations for the specified warehouse",
+                "tags": [
+                    "WarehouseLocation"
+                ],
+                "parameters": [
+                    {
+                        "name": "warehouse",
+                        "in": "path",
+                        "required": true,
+                        "description": "The warehouse UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "zone",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/WarehouseLocation"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "warehouseLocation.store",
+                "summary": "Create a new location under the specified warehouse",
+                "tags": [
+                    "WarehouseLocation"
+                ],
+                "parameters": [
+                    {
+                        "name": "warehouse",
+                        "in": "path",
+                        "required": true,
+                        "description": "The warehouse UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreWarehouseLocationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Warehouse location created successfully."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/WarehouseLocation"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/warehouse-locations/{warehouseLocation}": {
+            "get": {
+                "operationId": "warehouseLocation.show",
+                "summary": "Display the specified warehouse location details",
+                "tags": [
+                    "WarehouseLocation"
+                ],
+                "parameters": [
+                    {
+                        "name": "warehouseLocation",
+                        "in": "path",
+                        "required": true,
+                        "description": "The warehouse location UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/WarehouseLocation"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "warehouseLocation.update",
+                "summary": "Update the specified warehouse location details",
+                "tags": [
+                    "WarehouseLocation"
+                ],
+                "parameters": [
+                    {
+                        "name": "warehouseLocation",
+                        "in": "path",
+                        "required": true,
+                        "description": "The warehouse location UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateWarehouseLocationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Warehouse location updated successfully."
+                                        },
+                                        "data": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/WarehouseLocation"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "warehouseLocation.destroy",
+                "summary": "Delete the specified warehouse location",
+                "tags": [
+                    "WarehouseLocation"
+                ],
+                "parameters": [
+                    {
+                        "name": "warehouseLocation",
+                        "in": "path",
+                        "required": true,
+                        "description": "The warehouse location UUID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Warehouse location deleted successfully."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -1616,20 +3951,53 @@
             }
         },
         "schemas": {
+            "AssignBusinessUserOutletRequest": {
+                "type": "object",
+                "properties": {
+                    "outlet_uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "is_primary": {
+                        "type": "boolean"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "outlet_uuid"
+                ],
+                "title": "AssignBusinessUserOutletRequest"
+            },
             "AuthenticatePosDeviceRequest": {
                 "type": "object",
                 "properties": {
                     "machine_id": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "device_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "machine_password": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "password": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 },
-                "required": [
-                    "machine_id",
-                    "machine_password"
-                ],
                 "title": "AuthenticatePosDeviceRequest"
             },
             "Business": {
@@ -1683,8 +4051,77 @@
                             "null"
                         ]
                     },
+                    "logo_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "website": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "province": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "postal_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "country_code": {
+                        "type": "string"
+                    },
+                    "currency_code": {
+                        "type": "string"
+                    },
                     "default_currency": {
                         "type": "string"
+                    },
+                    "currency_symbol": {
+                        "type": "string"
+                    },
+                    "receipt_header": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "receipt_footer": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tax_rate": {
+                        "type": "string"
+                    },
+                    "is_tax_inclusive": {
+                        "type": "boolean"
                     },
                     "timezone": {
                         "type": "string"
@@ -1718,13 +4155,105 @@
                     "tax_number",
                     "registration_number",
                     "logo_path",
+                    "logo_url",
+                    "website",
+                    "description",
+                    "address",
+                    "city",
+                    "province",
+                    "postal_code",
+                    "country_code",
+                    "currency_code",
                     "default_currency",
+                    "currency_symbol",
+                    "receipt_header",
+                    "receipt_footer",
+                    "tax_rate",
+                    "is_tax_inclusive",
                     "timezone",
                     "status",
                     "created_at",
                     "updated_at"
                 ],
                 "title": "Business"
+            },
+            "BusinessSetting": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "business_id": {
+                        "type": "integer"
+                    },
+                    "receipt_prefix": {
+                        "type": "string"
+                    },
+                    "currency_code": {
+                        "type": "string"
+                    },
+                    "timezone": {
+                        "type": "string"
+                    },
+                    "tax_enabled": {
+                        "type": "boolean"
+                    },
+                    "default_tax_percent": {
+                        "type": "string"
+                    },
+                    "allow_negative_stock": {
+                        "type": "boolean"
+                    },
+                    "allow_discount": {
+                        "type": "boolean"
+                    },
+                    "max_discount_percent": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "auto_lock_minutes": {
+                        "type": "integer"
+                    },
+                    "receipt_footer": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "business_id",
+                    "receipt_prefix",
+                    "currency_code",
+                    "timezone",
+                    "tax_enabled",
+                    "default_tax_percent",
+                    "allow_negative_stock",
+                    "allow_discount",
+                    "max_discount_percent",
+                    "auto_lock_minutes",
+                    "receipt_footer",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "BusinessSetting"
             },
             "BusinessUser": {
                 "type": "object",
@@ -1738,11 +4267,47 @@
                     "business_id": {
                         "type": "integer"
                     },
+                    "outlet_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
                     "user_uuid": {
+                        "type": "string"
+                    },
+                    "employee_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "job_title": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "role": {
                         "type": "string"
                     },
                     "is_owner": {
                         "type": "boolean"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "status": {
                         "type": "string"
@@ -1773,14 +4338,540 @@
                     "id",
                     "uuid",
                     "business_id",
+                    "outlet_id",
                     "user_uuid",
+                    "employee_code",
+                    "job_title",
+                    "role",
                     "is_owner",
+                    "is_active",
+                    "phone",
+                    "notes",
                     "status",
                     "joined_at",
                     "created_at",
                     "updated_at"
                 ],
                 "title": "BusinessUser"
+            },
+            "BusinessUserOutlet": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "business_user_id": {
+                        "type": "integer"
+                    },
+                    "outlet_id": {
+                        "type": "integer"
+                    },
+                    "is_primary": {
+                        "type": "boolean"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "assigned_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "business_user_id",
+                    "outlet_id",
+                    "is_primary",
+                    "is_active",
+                    "assigned_at",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "BusinessUserOutlet"
+            },
+            "CashDrawerMovement": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "cash_drawer_session_id": {
+                        "type": "integer"
+                    },
+                    "business_id": {
+                        "type": "integer"
+                    },
+                    "outlet_id": {
+                        "type": "integer"
+                    },
+                    "register_id": {
+                        "type": "integer"
+                    },
+                    "user_uuid": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "string"
+                    },
+                    "reference_type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "reference_uuid": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "cash_drawer_session_id",
+                    "business_id",
+                    "outlet_id",
+                    "register_id",
+                    "user_uuid",
+                    "type",
+                    "amount",
+                    "reference_type",
+                    "reference_uuid",
+                    "reason",
+                    "notes",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "CashDrawerMovement"
+            },
+            "CashDrawerSession": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "register_session_id": {
+                        "type": "integer"
+                    },
+                    "business_id": {
+                        "type": "integer"
+                    },
+                    "outlet_id": {
+                        "type": "integer"
+                    },
+                    "register_id": {
+                        "type": "integer"
+                    },
+                    "opening_amount": {
+                        "type": "string"
+                    },
+                    "expected_amount": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "counted_amount": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "difference_amount": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "opened_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "closed_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "register_session_id",
+                    "business_id",
+                    "outlet_id",
+                    "register_id",
+                    "opening_amount",
+                    "expected_amount",
+                    "counted_amount",
+                    "difference_amount",
+                    "status",
+                    "opened_at",
+                    "closed_at",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "CashDrawerSession"
+            },
+            "CashierProfile": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "business_user_id": {
+                        "type": "integer"
+                    },
+                    "display_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "avatar_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "can_sell": {
+                        "type": "boolean"
+                    },
+                    "can_refund": {
+                        "type": "boolean"
+                    },
+                    "can_void": {
+                        "type": "boolean"
+                    },
+                    "can_discount": {
+                        "type": "boolean"
+                    },
+                    "max_discount_percent": {
+                        "type": "string"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "last_pos_login_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "business_user_id",
+                    "display_name",
+                    "avatar_url",
+                    "can_sell",
+                    "can_refund",
+                    "can_void",
+                    "can_discount",
+                    "max_discount_percent",
+                    "is_active",
+                    "last_pos_login_at",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "CashierProfile"
+            },
+            "CashierSession": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "business_id": {
+                        "type": "integer"
+                    },
+                    "outlet_id": {
+                        "type": "integer"
+                    },
+                    "register_id": {
+                        "type": "integer"
+                    },
+                    "pos_device_id": {
+                        "type": "integer"
+                    },
+                    "business_user_id": {
+                        "type": "integer"
+                    },
+                    "user_uuid": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "last_activity_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "locked_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ended_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "business_id",
+                    "outlet_id",
+                    "register_id",
+                    "pos_device_id",
+                    "business_user_id",
+                    "user_uuid",
+                    "status",
+                    "started_at",
+                    "last_activity_at",
+                    "locked_at",
+                    "ended_at",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "CashierSession"
+            },
+            "CloseRegisterSessionRequest": {
+                "type": "object",
+                "properties": {
+                    "closing_cash": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "closing_cash"
+                ],
+                "title": "CloseRegisterSessionRequest"
+            },
+            "DeviceSession": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "pos_device_id": {
+                        "type": "integer"
+                    },
+                    "ip_address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "user_agent": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "last_activity_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "revoked_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "pos_device_id",
+                    "ip_address",
+                    "user_agent",
+                    "started_at",
+                    "last_activity_at",
+                    "expires_at",
+                    "revoked_at",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "DeviceSession"
+            },
+            "OpenRegisterSessionRequest": {
+                "type": "object",
+                "properties": {
+                    "pos_device_uuid": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "opening_cash": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "opening_cash"
+                ],
+                "title": "OpenRegisterSessionRequest"
             },
             "Outlet": {
                 "type": "object",
@@ -1830,7 +4921,46 @@
                             "null"
                         ]
                     },
+                    "postal_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "country_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "latitude": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "longitude": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "is_main_outlet": {
+                        "type": "boolean"
+                    },
+                    "receipt_header": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "receipt_footer": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tax_rate": {
                         "type": [
                             "string",
                             "null"
@@ -1841,6 +4971,9 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "is_active": {
+                        "type": "boolean"
                     },
                     "status": {
                         "type": "string"
@@ -1871,8 +5004,16 @@
                     "address",
                     "city",
                     "province",
+                    "postal_code",
                     "country_code",
+                    "latitude",
+                    "longitude",
+                    "is_main_outlet",
+                    "receipt_header",
+                    "receipt_footer",
+                    "tax_rate",
                     "timezone",
+                    "is_active",
                     "status",
                     "created_at",
                     "updated_at"
@@ -1906,8 +5047,23 @@
                     "machine_id": {
                         "type": "string"
                     },
+                    "device_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "device_name": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "device_type": {
                         "type": [
@@ -1915,7 +5071,43 @@
                             "null"
                         ]
                     },
+                    "device_model": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "platform": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "os_version": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "app_version": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "serial_number": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "ip_address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "mac_address": {
                         "type": [
                             "string",
                             "null"
@@ -1931,7 +5123,35 @@
                         ],
                         "format": "date-time"
                     },
+                    "activated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "paired_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
                     "last_seen_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "last_sync_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "revoked_at": {
                         "type": [
                             "string",
                             "null"
@@ -1960,16 +5180,81 @@
                     "outlet_id",
                     "register_id",
                     "machine_id",
+                    "device_code",
+                    "name",
                     "device_name",
                     "device_type",
+                    "device_model",
                     "platform",
+                    "os_version",
+                    "app_version",
+                    "serial_number",
+                    "ip_address",
+                    "mac_address",
                     "status",
                     "registered_at",
+                    "activated_at",
+                    "paired_at",
                     "last_seen_at",
+                    "last_sync_at",
+                    "revoked_at",
                     "created_at",
                     "updated_at"
                 ],
                 "title": "PosDevice"
+            },
+            "RecordCashMovementRequest": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "cash_in",
+                            "cash_out",
+                            "payout",
+                            "deposit",
+                            "adjustment",
+                            "cash_sale",
+                            "cash_refund"
+                        ]
+                    },
+                    "amount": {
+                        "type": "number"
+                    },
+                    "reference_type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "reference_uuid": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "type",
+                    "amount"
+                ],
+                "title": "RecordCashMovementRequest"
             },
             "Register": {
                 "type": "object",
@@ -1991,6 +5276,27 @@
                     },
                     "name": {
                         "type": "string"
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "default_cash_amount": {
+                        "type": "string"
+                    },
+                    "receipt_printer_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "is_cash_drawer_connected": {
+                        "type": "boolean"
+                    },
+                    "is_active": {
+                        "type": "boolean"
                     },
                     "status": {
                         "type": "string"
@@ -2017,11 +5323,143 @@
                     "outlet_id",
                     "code",
                     "name",
+                    "description",
+                    "default_cash_amount",
+                    "receipt_printer_name",
+                    "is_cash_drawer_connected",
+                    "is_active",
                     "status",
                     "created_at",
                     "updated_at"
                 ],
                 "title": "Register"
+            },
+            "RegisterSession": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "business_id": {
+                        "type": "integer"
+                    },
+                    "outlet_id": {
+                        "type": "integer"
+                    },
+                    "register_id": {
+                        "type": "integer"
+                    },
+                    "pos_device_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "opened_by_user_uuid": {
+                        "type": "string"
+                    },
+                    "closed_by_user_uuid": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "opening_cash": {
+                        "type": "string"
+                    },
+                    "expected_cash": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "closing_cash": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "difference_amount": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "opened_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "closed_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "business_id",
+                    "outlet_id",
+                    "register_id",
+                    "pos_device_id",
+                    "opened_by_user_uuid",
+                    "closed_by_user_uuid",
+                    "opening_cash",
+                    "expected_cash",
+                    "closing_cash",
+                    "difference_amount",
+                    "status",
+                    "opened_at",
+                    "closed_at",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "RegisterSession"
+            },
+            "StartCashierSessionRequest": {
+                "type": "object",
+                "properties": {
+                    "register_uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "pos_device_uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "user_uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "register_uuid",
+                    "pos_device_uuid",
+                    "user_uuid"
+                ],
+                "title": "StartCashierSessionRequest"
             },
             "StoreBusinessRequest": {
                 "type": "object",
@@ -2077,12 +5515,99 @@
                         ],
                         "maxLength": 255
                     },
+                    "website": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 100
+                    },
+                    "province": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 100
+                    },
+                    "postal_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 20
+                    },
+                    "country_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 10
+                    },
+                    "currency_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 3
+                    },
                     "default_currency": {
                         "type": [
                             "string",
                             "null"
                         ],
                         "maxLength": 10
+                    },
+                    "currency_symbol": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 10
+                    },
+                    "receipt_header": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "receipt_footer": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tax_rate": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": 0,
+                        "maximum": 100
+                    },
+                    "is_tax_inclusive": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     },
                     "timezone": {
                         "type": [
@@ -2117,9 +5642,48 @@
                         "type": "string",
                         "format": "uuid"
                     },
+                    "outlet_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "role": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "owner",
+                            "manager",
+                            "cashier",
+                            "staff",
+                            "admin",
+                            null
+                        ]
+                    },
                     "is_owner": {
                         "type": [
                             "boolean",
+                            "null"
+                        ]
+                    },
+                    "pin_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
                             "null"
                         ]
                     },
@@ -2186,12 +5750,61 @@
                         ],
                         "maxLength": 100
                     },
+                    "postal_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 20
+                    },
                     "country_code": {
                         "type": [
                             "string",
                             "null"
                         ],
                         "maxLength": 10
+                    },
+                    "latitude": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": -90,
+                        "maximum": 90
+                    },
+                    "longitude": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": -180,
+                        "maximum": 180
+                    },
+                    "is_main_outlet": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "receipt_header": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "receipt_footer": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tax_rate": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": 0,
+                        "maximum": 100
                     },
                     "timezone": {
                         "type": [
@@ -2243,6 +5856,33 @@
                         ],
                         "maxLength": 50
                     },
+                    "os_version": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "app_version": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "ip_address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "mac_address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
                     "register_uuid": {
                         "type": [
                             "string",
@@ -2268,6 +5908,38 @@
                         "type": "string",
                         "maxLength": 255
                     },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "default_cash_amount": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "receipt_printer_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "is_cash_drawer_connected": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "is_active": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
                     "status": {
                         "type": [
                             "string",
@@ -2285,6 +5957,134 @@
                     "name"
                 ],
                 "title": "StoreRegisterRequest"
+            },
+            "StoreWarehouseLocationRequest": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
+                    "zone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "aisle": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "rack": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "shelf": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "bin": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "active",
+                            "inactive",
+                            null
+                        ]
+                    }
+                },
+                "required": [
+                    "code"
+                ],
+                "title": "StoreWarehouseLocationRequest"
+            },
+            "StoreWarehouseRequest": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "outlet_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "outlet_uuid": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "active",
+                            "inactive",
+                            null
+                        ]
+                    }
+                },
+                "required": [
+                    "code",
+                    "name"
+                ],
+                "title": "StoreWarehouseRequest"
+            },
+            "UnlockCashierSessionRequest": {
+                "type": "object",
+                "properties": {
+                    "pin_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "minLength": 4,
+                        "maxLength": 10
+                    }
+                },
+                "title": "UnlockCashierSessionRequest"
             },
             "UpdateBusinessRequest": {
                 "type": "object",
@@ -2340,12 +6140,99 @@
                         ],
                         "maxLength": 255
                     },
+                    "website": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 100
+                    },
+                    "province": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 100
+                    },
+                    "postal_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 20
+                    },
+                    "country_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 10
+                    },
+                    "currency_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 3
+                    },
                     "default_currency": {
                         "type": [
                             "string",
                             "null"
                         ],
                         "maxLength": 10
+                    },
+                    "currency_symbol": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 10
+                    },
+                    "receipt_header": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "receipt_footer": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tax_rate": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": 0,
+                        "maximum": 100
+                    },
+                    "is_tax_inclusive": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     },
                     "timezone": {
                         "type": [
@@ -2369,12 +6256,104 @@
                 },
                 "title": "UpdateBusinessRequest"
             },
+            "UpdateBusinessSettingRequest": {
+                "type": "object",
+                "properties": {
+                    "receipt_prefix": {
+                        "type": "string",
+                        "maxLength": 20
+                    },
+                    "currency_code": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 3
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "tax_enabled": {
+                        "type": "boolean"
+                    },
+                    "default_tax_percent": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100
+                    },
+                    "allow_negative_stock": {
+                        "type": "boolean"
+                    },
+                    "allow_discount": {
+                        "type": "boolean"
+                    },
+                    "max_discount_percent": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": 0,
+                        "maximum": 100
+                    },
+                    "auto_lock_minutes": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1440
+                    },
+                    "receipt_footer": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 1000
+                    }
+                },
+                "title": "UpdateBusinessSettingRequest"
+            },
             "UpdateBusinessUserRequest": {
                 "type": "object",
                 "properties": {
+                    "outlet_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "role": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "owner",
+                            "manager",
+                            "cashier",
+                            "staff",
+                            "admin",
+                            null
+                        ]
+                    },
                     "is_owner": {
                         "type": [
                             "boolean",
+                            "null"
+                        ]
+                    },
+                    "pin_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
                             "null"
                         ]
                     },
@@ -2391,6 +6370,47 @@
                     }
                 },
                 "title": "UpdateBusinessUserRequest"
+            },
+            "UpdateCashierProfileRequest": {
+                "type": "object",
+                "properties": {
+                    "display_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 150
+                    },
+                    "avatar_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 255
+                    },
+                    "can_sell": {
+                        "type": "boolean"
+                    },
+                    "can_refund": {
+                        "type": "boolean"
+                    },
+                    "can_void": {
+                        "type": "boolean"
+                    },
+                    "can_discount": {
+                        "type": "boolean"
+                    },
+                    "max_discount_percent": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    }
+                },
+                "title": "UpdateCashierProfileRequest"
             },
             "UpdateOutletRequest": {
                 "type": "object",
@@ -2438,12 +6458,61 @@
                         ],
                         "maxLength": 100
                     },
+                    "postal_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 20
+                    },
                     "country_code": {
                         "type": [
                             "string",
                             "null"
                         ],
                         "maxLength": 10
+                    },
+                    "latitude": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": -90,
+                        "maximum": 90
+                    },
+                    "longitude": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": -180,
+                        "maximum": 180
+                    },
+                    "is_main_outlet": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "receipt_header": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "receipt_footer": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tax_rate": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": 0,
+                        "maximum": 100
                     },
                     "timezone": {
                         "type": [
@@ -2487,6 +6556,33 @@
                         ],
                         "maxLength": 50
                     },
+                    "os_version": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "app_version": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "ip_address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "mac_address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
                     "outlet_uuid": {
                         "type": [
                             "string",
@@ -2513,6 +6609,20 @@
                             "revoked",
                             null
                         ]
+                    },
+                    "paired_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "last_sync_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
                     }
                 },
                 "title": "UpdatePosDeviceRequest"
@@ -2528,6 +6638,38 @@
                         "type": "string",
                         "maxLength": 255
                     },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "default_cash_amount": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "receipt_printer_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "is_cash_drawer_connected": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "is_active": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
                     "status": {
                         "type": [
                             "string",
@@ -2541,6 +6683,261 @@
                     }
                 },
                 "title": "UpdateRegisterRequest"
+            },
+            "UpdateWarehouseLocationRequest": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
+                    "zone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "aisle": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "rack": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "shelf": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "bin": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "active",
+                            "inactive",
+                            null
+                        ]
+                    }
+                },
+                "title": "UpdateWarehouseLocationRequest"
+            },
+            "UpdateWarehouseRequest": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "outlet_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "outlet_uuid": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "active",
+                            "inactive",
+                            null
+                        ]
+                    }
+                },
+                "title": "UpdateWarehouseRequest"
+            },
+            "Warehouse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "business_id": {
+                        "type": "integer"
+                    },
+                    "outlet_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "business_id",
+                    "outlet_id",
+                    "code",
+                    "name",
+                    "address",
+                    "status",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "Warehouse"
+            },
+            "WarehouseLocation": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "warehouse_id": {
+                        "type": "integer"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "zone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "aisle": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "rack": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "shelf": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "bin": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "warehouse_id",
+                    "code",
+                    "zone",
+                    "aisle",
+                    "rack",
+                    "shelf",
+                    "bin",
+                    "description",
+                    "status",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "WarehouseLocation"
             }
         },
         "responses": {

@@ -40,10 +40,12 @@ class BusinessController extends Controller
     }
 
     /**
-     * Create a new business and assign current user as the owner.
+     * Create a new business and auto-provision default outlet, register, POS device, and email machine credentials.
      */
-    public function store(StoreBusinessRequest $request): JsonResponse
-    {
+    public function store(
+        StoreBusinessRequest $request,
+        \App\Services\BusinessProvisionService $provisioner
+    ): JsonResponse {
         $userUuid = $request->attributes->get('user_uuid');
 
         $data = $request->validated();
@@ -52,7 +54,7 @@ class BusinessController extends Controller
         $business = Business::create($data);
 
         // Automatically make current user the business owner
-        BusinessUser::create([
+        $businessUser = BusinessUser::create([
             'business_id' => $business->id,
             'user_uuid' => $userUuid,
             'is_owner' => true,
@@ -60,9 +62,22 @@ class BusinessController extends Controller
             'joined_at' => now(),
         ]);
 
+        // Auto-provision default Outlet, Register, POS Device & email credentials to business email
+        $provisioned = $provisioner->provisionDefaultPosSetup(
+            business: $business,
+            ownerUser: $businessUser,
+            recipientEmail: $business->email
+        );
+
         return response()->json([
-            'message' => 'Business created successfully.',
-            'data' => $business->fresh(['businessUsers', 'outlets']),
+            'message' => 'Business created successfully. Default outlet, register, and POS terminal have been provisioned.',
+            'data' => $business->fresh(['businessUsers', 'outlets.registers.posDevices', 'settings']),
+            'provisioned' => [
+                'outlet' => $provisioned['outlet'],
+                'register' => $provisioned['register'],
+                'pos_device' => $provisioned['pos_device'],
+                'credentials' => $provisioned['credentials'],
+            ],
         ], 201);
     }
 
