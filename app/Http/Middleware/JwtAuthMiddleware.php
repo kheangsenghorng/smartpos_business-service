@@ -46,18 +46,53 @@ class JwtAuthMiddleware
 
         [$headerB64, $payloadB64, $sigB64] = $parts;
 
-        $secret = config('jwt.secret');
+        // Decode and validate header
+        $headerJson = $this->base64UrlDecode($headerB64);
+        $header = json_decode($headerJson, true);
 
-        if (! $secret) {
+        if (! is_array($header) || empty($header['alg'])) {
             return null;
         }
 
-        // Verify signature
-        $expectedSig = $this->base64UrlEncode(
-            hash_hmac('sha256', "$headerB64.$payloadB64", $secret, true)
-        );
+        $tokenAlgo = strtoupper((string) $header['alg']);
+        if ($tokenAlgo === 'NONE') {
+            return null;
+        }
 
-        if (! hash_equals($expectedSig, $sigB64)) {
+        $publicKey = config('jwt.public_key');
+        if (is_string($publicKey) && str_starts_with($publicKey, 'file://')) {
+            $keyPath = substr($publicKey, 7);
+            if (! str_starts_with($keyPath, '/') && function_exists('base_path')) {
+                $keyPath = base_path($keyPath);
+            }
+            $publicKey = file_exists($keyPath) ? file_get_contents($keyPath) : null;
+        }
+
+        $secret = config('jwt.secret');
+
+        $isVerified = false;
+
+        // Asymmetric Verification (RS256, RS384, RS512)
+        if (in_array($tokenAlgo, ['RS256', 'RS384', 'RS512'], true) && ! empty($publicKey)) {
+            $algoMap = [
+                'RS256' => OPENSSL_ALGO_SHA256,
+                'RS384' => OPENSSL_ALGO_SHA384,
+                'RS512' => OPENSSL_ALGO_SHA512,
+            ];
+            $openSslAlgo = $algoMap[$tokenAlgo] ?? OPENSSL_ALGO_SHA256;
+            $rawSig = $this->base64UrlDecodeBinary($sigB64);
+            if ($rawSig !== false && $rawSig !== null) {
+                $isVerified = openssl_verify("$headerB64.$payloadB64", $rawSig, $publicKey, $openSslAlgo) === 1;
+            }
+        } elseif ($tokenAlgo === 'HS256' && ! empty($secret)) {
+            // Symmetric HMAC Verification
+            $expectedSig = $this->base64UrlEncode(
+                hash_hmac('sha256', "$headerB64.$payloadB64", $secret, true)
+            );
+            $isVerified = hash_equals($expectedSig, $sigB64);
+        }
+
+        if (! $isVerified) {
             return null;
         }
 
@@ -85,8 +120,12 @@ class JwtAuthMiddleware
         // Verify audience
         $expectedAudience = config('jwt.audience');
         $verifyAudience = config('jwt.verify_audience', false);
-        if (($verifyAudience || isset($payload['aud'])) && $expectedAudience) {
+        if ($verifyAudience && $expectedAudience) {
             if (! isset($payload['aud']) || $payload['aud'] !== $expectedAudience) {
+                return null;
+            }
+        } elseif (isset($payload['aud']) && $expectedAudience) {
+            if ($payload['aud'] !== $expectedAudience) {
                 return null;
             }
         }
@@ -112,6 +151,8 @@ class JwtAuthMiddleware
             $identityUrl ? rtrim((string) $identityUrl, '/') : null,
             $appUrl ? rtrim((string) $appUrl, '/') : null,
             ...(app()->environment('local', 'testing') ? [
+                'http://localhost',
+                'http://127.0.0.1',
                 'http://localhost:8001',
                 'http://127.0.0.1:8001',
                 'http://api.smartpos.test',
@@ -135,6 +176,18 @@ class JwtAuthMiddleware
 
     private function base64UrlDecode(string $data): string
     {
-        return base64_decode(strtr($data, '-_', '+/'));
+        return (string) base64_decode(strtr($data, '-_', '+/'));
+    }
+
+    private function base64UrlDecodeBinary(string $data): ?string
+    {
+        $remainder = strlen($data) % 4;
+        if ($remainder) {
+            $data .= str_repeat('=', 4 - $remainder);
+        }
+
+        $decoded = base64_decode(strtr($data, '-_', '+/'), true);
+
+        return $decoded === false ? null : $decoded;
     }
 }

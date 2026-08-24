@@ -22,9 +22,11 @@ return [
     // SEC-01 FIX: Changed defaults from false → true (secure-by-default)
     'verify_issuer' => env('JWT_VERIFY_ISSUER', true),
 
-    'verify_audience' => env('JWT_VERIFY_AUDIENCE', true),
+    'verify_audience' => env('JWT_VERIFY_AUDIENCE', false),
 
     'identity_service_url' => env('IDENTITY_SERVICE_URL', 'http://localhost:8001'),
 
-    'algo' => env('JWT_ALGO', 'HS256'),
+    'algo' => env('JWT_ALGO', 'RS256'),
+
+    'public_key' => env('JWT_PUBLIC_KEY') ?: (file_exists(storage_path('certs/jwt-public.pem')) ? 'file://' . storage_path('certs/jwt-public.pem') : null),
 ];
