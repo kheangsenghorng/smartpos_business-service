@@ -5,32 +5,45 @@ namespace App\Providers;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        // 1. API Documentation Exposure
-        Scramble::configure()
-            ->expose(
-                ui: '/docs/business',
-                document: '/docs/business.json',
-            );
 
-        // 2. Global API Rate Limiter (60 requests/min per User/IP)
+
+
+        // Allow Scramble documentation in production
+        Gate::define('viewApiDocs', function ($user = null) {
+            return true;
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | API Documentation
+        |--------------------------------------------------------------------------
+        */
+
+        Scramble::configure()
+        ->expose(
+            ui: '/docs/business',
+            document: '/docs/business.json',
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Global API Rate Limiter
+        |--------------------------------------------------------------------------
+        */
+
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)
                 ->by($request->header('X-User-Uuid') ?: $request->ip())
@@ -44,10 +57,14 @@ class AppServiceProvider extends ServiceProvider
                 });
         });
 
-        // 3. Strict Auth Rate Limiter (5 attempts/min per Machine ID & IP)
         RateLimiter::for('auth', function (Request $request) {
-            $machineId = strtolower((string) ($request->input('machine_id') ?? ''));
-            $key = $machineId !== '' ? "auth:{$machineId}|{$request->ip()}" : $request->ip();
+            $machineId = strtolower(
+                (string) ($request->input('machine_id') ?? '')
+            );
+
+            $key = $machineId !== ''
+                ? "auth:{$machineId}|{$request->ip()}"
+                : $request->ip();
 
             return Limit::perMinute(5)
                 ->by($key)
@@ -61,7 +78,6 @@ class AppServiceProvider extends ServiceProvider
                 });
         });
 
-        // 4. Mutations Rate Limiter for write operations (30 writes/min)
         RateLimiter::for('mutations', function (Request $request) {
             return Limit::perMinute(30)
                 ->by($request->header('X-User-Uuid') ?: $request->ip())
@@ -75,11 +91,16 @@ class AppServiceProvider extends ServiceProvider
                 });
         });
 
-        // 5. Cashier PIN Unlock Rate Limiter (5 attempts/min to prevent brute-force attacks)
         RateLimiter::for('cashier_pin', function (Request $request) {
             $session = $request->route('cashierSession');
-            $sessionId = is_object($session) ? $session->id : (string) ($session ?? '');
-            $key = $sessionId !== '' ? "cashier_pin:{$sessionId}|{$request->ip()}" : "cashier_pin:{$request->ip()}";
+
+            $sessionId = is_object($session)
+                ? $session->id
+                : (string) ($session ?? '');
+
+            $key = $sessionId !== ''
+                ? "cashier_pin:{$sessionId}|{$request->ip()}"
+                : "cashier_pin:{$request->ip()}";
 
             return Limit::perMinute(5)
                 ->by($key)

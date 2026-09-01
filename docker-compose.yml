@@ -14,7 +14,8 @@ services:
     volumes:
       - .:/var/www/html
       - business-vendor:/var/www/html/vendor
-
+      - /opt/smartpos/secrets/identity-jwt/public.pem:/run/secrets/identity-jwt/public.pem:ro
+      
     depends_on:
       business-mysql:
         condition: service_healthy

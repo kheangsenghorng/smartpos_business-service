@@ -4,9 +4,37 @@ use Dedoc\Scramble\SecurityDocumentation\MiddlewareAuthSecurityStrategy;
 
 return [
 
+    /*
+    |--------------------------------------------------------------------------
+    | API
+    |--------------------------------------------------------------------------
+    */
+
     'api_path' => 'api/v1',
 
     'api_domain' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAPI Server
+    |--------------------------------------------------------------------------
+    |
+    | Force HTTPS because production is behind Nginx/OpenResty.
+    | This prevents Scramble from generating:
+    |
+    | http://smartpos-api.servicefixit.me/api/v1
+    |
+    */
+
+    'servers' => [
+        'Production' => 'https://smartpos-api.servicefixit.me/api/v1',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | API Information
+    |--------------------------------------------------------------------------
+    */
 
     'info' => [
         'version' => '1.0.0',
@@ -26,14 +54,31 @@ Business Operations & POS Management API for SmartPOS.
         ',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Documentation UI
+    |--------------------------------------------------------------------------
+    */
+
     'ui' => [
         'title' => 'SmartPOS Business',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication
+    |--------------------------------------------------------------------------
+    */
+
     'security_strategy' => [
         MiddlewareAuthSecurityStrategy::class,
         [
-            'middleware' => ['jwt.auth', 'auth', 'auth:*'],
+            'middleware' => [
+                'jwt.auth',
+                'auth',
+                'auth:*',
+            ],
         ],
     ],
+
 ];

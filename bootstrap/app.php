@@ -8,6 +8,8 @@ use App\Http\Middleware\EnsureOutletAccess;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsurePosDeviceAccess;
 use App\Http\Middleware\EnsureRegisterAccess;
+use App\Http\Middleware\EnsureWarehouseAccess;
+use App\Http\Middleware\EnsureWarehouseLocationAccess;
 use App\Http\Middleware\JwtAuthMiddleware;
 use App\Http\Middleware\SanitizeInputMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
@@ -17,9 +19,6 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 
-use App\Http\Middleware\EnsureWarehouseAccess;
-use App\Http\Middleware\EnsureWarehouseLocationAccess;
-
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -28,7 +27,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trustProxies(at: '*');
+        $middleware->trustProxies(
+            at: '*',
+            headers:
+                Request::HEADER_X_FORWARDED_FOR |
+                Request::HEADER_X_FORWARDED_HOST |
+                Request::HEADER_X_FORWARDED_PORT |
+                Request::HEADER_X_FORWARDED_PROTO
+        );
+
         $middleware->append(AttackShieldMiddleware::class);
         $middleware->append(SanitizeInputMiddleware::class);
         $middleware->append(SecurityHeadersMiddleware::class);
@@ -48,26 +55,36 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+            fn (Request $request) =>
+                $request->is('api/*') || $request->expectsJson()
         );
 
-        $exceptions->render(function (QueryException $e, Request $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'DATABASE_ERROR',
-                    'message' => 'An unexpected database error occurred. Details have been logged.',
-                ], 500);
-            }
-        });
+        $exceptions->render(
+            function (QueryException $e, Request $request) {
+                if ($request->is('api/*') || $request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'DATABASE_ERROR',
+                        'message' => 'An unexpected database error occurred. Details have been logged.',
+                    ], 500);
+                }
 
-        $exceptions->render(function (PDOException $e, Request $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'DATABASE_CONNECTION_ERROR',
-                    'message' => 'Database service is currently unreachable.',
-                ], 500);
+                return null;
             }
-        });
-    })->create();
+        );
+
+        $exceptions->render(
+            function (\PDOException $e, Request $request) {
+                if ($request->is('api/*') || $request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'DATABASE_CONNECTION_ERROR',
+                        'message' => 'Database service is currently unreachable.',
+                    ], 500);
+                }
+
+                return null;
+            }
+        );
+    })
+    ->create();

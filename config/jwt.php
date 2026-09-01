@@ -1,32 +1,112 @@
 <?php
 
 return [
+
     /*
     |--------------------------------------------------------------------------
     | JWT Authentication Configuration
     |--------------------------------------------------------------------------
     |
-    | SEC-01: verify_issuer and verify_audience are explicitly set to true by
-    | default to prevent cross-service token replay attacks. A JWT minted for
-    | another internal service will be rejected even if it carries the same
-    | signing secret. Override via .env only for local/testing environments.
+    | Business Service does NOT sign JWT tokens.
+    | Identity Service signs tokens using the RSA private key.
+    |
+    | Business Service receives only the public key and uses it to verify:
+    |
+    |   - Signature
+    |   - Issuer (iss)
+    |   - Audience (aud)
+    |   - Expiration (exp)
     |
     */
 
-    'secret' => env('JWT_SECRET'),
-
-    'issuer' => env('JWT_ISSUER', 'smartpos-auth-service'),
-
-    'audience' => env('JWT_AUDIENCE', 'smartpos-api'),
-
-    // SEC-01 FIX: Changed defaults from false → true (secure-by-default)
-    'verify_issuer' => env('JWT_VERIFY_ISSUER', true),
-
-    'verify_audience' => env('JWT_VERIFY_AUDIENCE', false),
-
-    'identity_service_url' => env('IDENTITY_SERVICE_URL', 'http://localhost:8001'),
+    /*
+    |--------------------------------------------------------------------------
+    | JWT Algorithm
+    |--------------------------------------------------------------------------
+    */
 
     'algo' => env('JWT_ALGO', 'RS256'),
 
-    'public_key' => env('JWT_PUBLIC_KEY') ?: (file_exists(storage_path('certs/jwt-public.pem')) ? 'file://' . storage_path('certs/jwt-public.pem') : null),
+    /*
+    |--------------------------------------------------------------------------
+    | JWT Public Key
+    |--------------------------------------------------------------------------
+    |
+    | Production:
+    | /run/secrets/identity-jwt/public.pem
+    |
+    | The Docker container receives this file from:
+    | /opt/smartpos/secrets/identity-jwt/public.pem
+    |
+    */
+
+    'public_key' => env(
+        'JWT_PUBLIC_KEY',
+        file_exists('/run/secrets/identity-jwt/public.pem')
+            ? '/run/secrets/identity-jwt/public.pem'
+            : (file_exists(base_path('../secrets/identity-jwt/public.pem'))
+                ? base_path('../secrets/identity-jwt/public.pem')
+                : (file_exists(storage_path('certs/jwt-public.pem'))
+                    ? 'file://storage/certs/jwt-public.pem'
+                    : '/opt/smartpos/secrets/identity-jwt/public.pem'))
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | JWT Issuer
+    |--------------------------------------------------------------------------
+    |
+    | Must match the "iss" claim created by Identity Service.
+    |
+    */
+
+    'issuer' => env(
+        'JWT_ISSUER',
+        'smartpos-auth-service'
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | JWT Audience
+    |--------------------------------------------------------------------------
+    |
+    | Must match the "aud" claim created by Identity Service.
+    |
+    */
+
+    'audience' => env(
+        'JWT_AUDIENCE',
+        'smartpos-api'
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Claim Verification
+    |--------------------------------------------------------------------------
+    */
+
+    'verify_issuer' => env(
+        'JWT_VERIFY_ISSUER',
+        true
+    ),
+
+    'verify_audience' => env(
+        'JWT_VERIFY_AUDIENCE',
+        true
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Identity Service
+    |--------------------------------------------------------------------------
+    |
+    | Internal Docker address.
+    |
+    */
+
+    'identity_service_url' => env(
+        'IDENTITY_SERVICE_URL',
+        'http://identity-service:8000'
+    ),
+
 ];

@@ -39,97 +39,259 @@ class JwtAuthMiddleware
     private function verifyToken(string $token): ?array
     {
         $parts = explode('.', $token);
-
+    
         if (count($parts) !== 3) {
             return null;
         }
-
+    
         [$headerB64, $payloadB64, $sigB64] = $parts;
-
-        // Decode and validate header
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Decode JWT Header
+        |--------------------------------------------------------------------------
+        */
+    
         $headerJson = $this->base64UrlDecode($headerB64);
         $header = json_decode($headerJson, true);
-
+    
         if (! is_array($header) || empty($header['alg'])) {
             return null;
         }
-
+    
         $tokenAlgo = strtoupper((string) $header['alg']);
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Reject unsafe / unexpected algorithms
+        |--------------------------------------------------------------------------
+        */
+    
         if ($tokenAlgo === 'NONE') {
             return null;
         }
-
-        $publicKey = config('jwt.public_key');
-        if (is_string($publicKey) && str_starts_with($publicKey, 'file://')) {
-            $keyPath = substr($publicKey, 7);
-            if (! str_starts_with($keyPath, '/') && function_exists('base_path')) {
-                $keyPath = base_path($keyPath);
-            }
-            $publicKey = file_exists($keyPath) ? file_get_contents($keyPath) : null;
+    
+        $configuredAlgo = strtoupper((string) config('jwt.algo', 'RS256'));
+    
+        if ($tokenAlgo !== $configuredAlgo) {
+            return null;
         }
-
-        $secret = config('jwt.secret');
-
+    
+        $signingInput = $headerB64.'.'.$payloadB64;
+        $rawSig = $this->base64UrlDecodeBinary($sigB64);
+    
+        if ($rawSig === null) {
+            return null;
+        }
+    
         $isVerified = false;
-
-        // Asymmetric Verification (RS256, RS384, RS512)
-        if (in_array($tokenAlgo, ['RS256', 'RS384', 'RS512'], true) && ! empty($publicKey)) {
+    
+        /*
+        |--------------------------------------------------------------------------
+        | RSA JWT Verification
+        |--------------------------------------------------------------------------
+        */
+    
+        if (in_array($tokenAlgo, ['RS256', 'RS384', 'RS512'], true)) {
+            $publicKeyConfig = config('jwt.public_key');
+    
+            if (! is_string($publicKeyConfig) || trim($publicKeyConfig) === '') {
+                logger()->error('JWT public key configuration is missing');
+    
+                return null;
+            }
+    
+            /*
+             * Support:
+             *
+             * /run/secrets/identity-jwt/public.pem
+             * file:///run/secrets/identity-jwt/public.pem
+             * -----BEGIN PUBLIC KEY----- ...
+             */
+    
+            if (str_starts_with($publicKeyConfig, 'file://')) {
+                $keyPath = substr($publicKeyConfig, 7);
+    
+                if (! str_starts_with($keyPath, '/')) {
+                    $keyPath = base_path($keyPath);
+                }
+    
+                if (! is_file($keyPath) || ! is_readable($keyPath)) {
+                    logger()->error('JWT public key file is unavailable', [
+                        'path' => $keyPath,
+                    ]);
+    
+                    return null;
+                }
+    
+                $publicKeyPem = file_get_contents($keyPath);
+    
+            } elseif (
+                str_contains($publicKeyConfig, '-----BEGIN PUBLIC KEY-----') ||
+                str_contains($publicKeyConfig, '-----BEGIN RSA PUBLIC KEY-----')
+            ) {
+                // Public key directly stored as PEM
+                $publicKeyPem = $publicKeyConfig;
+    
+            } else {
+                // Treat configuration as a normal filesystem path
+                $keyPath = $publicKeyConfig;
+    
+                if (! str_starts_with($keyPath, '/')) {
+                    $keyPath = base_path($keyPath);
+                }
+    
+                if (! is_file($keyPath) || ! is_readable($keyPath)) {
+                    logger()->error('JWT public key file is unavailable', [
+                        'path' => $keyPath,
+                    ]);
+    
+                    return null;
+                }
+    
+                $publicKeyPem = file_get_contents($keyPath);
+            }
+    
+            if (! is_string($publicKeyPem) || trim($publicKeyPem) === '') {
+                logger()->error('JWT public key file is empty');
+    
+                return null;
+            }
+    
+            $publicKey = openssl_pkey_get_public($publicKeyPem);
+    
+            if ($publicKey === false) {
+                logger()->error('JWT public key is invalid', [
+                    'openssl_error' => openssl_error_string(),
+                ]);
+    
+                return null;
+            }
+    
             $algoMap = [
                 'RS256' => OPENSSL_ALGO_SHA256,
                 'RS384' => OPENSSL_ALGO_SHA384,
                 'RS512' => OPENSSL_ALGO_SHA512,
             ];
-            $openSslAlgo = $algoMap[$tokenAlgo] ?? OPENSSL_ALGO_SHA256;
-            $rawSig = $this->base64UrlDecodeBinary($sigB64);
-            if ($rawSig !== false && $rawSig !== null) {
-                $isVerified = openssl_verify("$headerB64.$payloadB64", $rawSig, $publicKey, $openSslAlgo) === 1;
+    
+            $isVerified = openssl_verify(
+                $signingInput,
+                $rawSig,
+                $publicKey,
+                $algoMap[$tokenAlgo]
+            ) === 1;
+        }
+    
+        /*
+        |--------------------------------------------------------------------------
+        | HMAC Verification
+        |--------------------------------------------------------------------------
+        */
+    
+        elseif ($tokenAlgo === 'HS256') {
+            $secret = config('jwt.secret');
+    
+            if (! is_string($secret) || $secret === '') {
+                return null;
             }
-        } elseif ($tokenAlgo === 'HS256' && ! empty($secret)) {
-            // Symmetric HMAC Verification
+    
             $expectedSig = $this->base64UrlEncode(
-                hash_hmac('sha256', "$headerB64.$payloadB64", $secret, true)
+                hash_hmac(
+                    'sha256',
+                    $signingInput,
+                    $secret,
+                    true
+                )
             );
+    
             $isVerified = hash_equals($expectedSig, $sigB64);
         }
-
+    
         if (! $isVerified) {
             return null;
         }
-
-        // Decode payload
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Decode JWT Payload
+        |--------------------------------------------------------------------------
+        */
+    
         $payloadJson = $this->base64UrlDecode($payloadB64);
         $payload = json_decode($payloadJson, true);
-
+    
         if (! is_array($payload)) {
             return null;
         }
-
-        // Check expiration
-        if (isset($payload['exp']) && time() >= $payload['exp']) {
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Expiration
+        |--------------------------------------------------------------------------
+        */
+    
+        if (
+            isset($payload['exp']) &&
+            is_numeric($payload['exp']) &&
+            time() >= (int) $payload['exp']
+        ) {
             return null;
         }
-
-        // Verify issuer
-        $verifyIssuer = config('jwt.verify_issuer', false);
-        if ($verifyIssuer || isset($payload['iss'])) {
-            if (! isset($payload['iss']) || ! $this->isIssuerValid($payload['iss'])) {
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Not Before
+        |--------------------------------------------------------------------------
+        */
+    
+        if (
+            isset($payload['nbf']) &&
+            is_numeric($payload['nbf']) &&
+            time() < (int) $payload['nbf']
+        ) {
+            return null;
+        }
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Issuer
+        |--------------------------------------------------------------------------
+        */
+    
+        if (config('jwt.verify_issuer', true)) {
+            if (
+                ! isset($payload['iss']) ||
+                ! $this->isIssuerValid((string) $payload['iss'])
+            ) {
                 return null;
             }
         }
-
-        // Verify audience
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Audience
+        |--------------------------------------------------------------------------
+        */
+    
         $expectedAudience = config('jwt.audience');
-        $verifyAudience = config('jwt.verify_audience', false);
-        if ($verifyAudience && $expectedAudience) {
-            if (! isset($payload['aud']) || $payload['aud'] !== $expectedAudience) {
+    
+        if (
+            config('jwt.verify_audience', true) &&
+            $expectedAudience
+        ) {
+            if (! isset($payload['aud'])) {
                 return null;
             }
-        } elseif (isset($payload['aud']) && $expectedAudience) {
-            if ($payload['aud'] !== $expectedAudience) {
+    
+            $audiences = is_array($payload['aud'])
+                ? $payload['aud']
+                : [$payload['aud']];
+    
+            if (! in_array($expectedAudience, $audiences, true)) {
                 return null;
             }
         }
-
+    
         return $payload;
     }
 
@@ -176,9 +338,19 @@ class JwtAuthMiddleware
 
     private function base64UrlDecode(string $data): string
     {
-        return (string) base64_decode(strtr($data, '-_', '+/'));
+        $remainder = strlen($data) % 4;
+    
+        if ($remainder) {
+            $data .= str_repeat('=', 4 - $remainder);
+        }
+    
+        $decoded = base64_decode(
+            strtr($data, '-_', '+/'),
+            true
+        );
+    
+        return $decoded === false ? '' : $decoded;
     }
-
     private function base64UrlDecodeBinary(string $data): ?string
     {
         $remainder = strlen($data) % 4;
