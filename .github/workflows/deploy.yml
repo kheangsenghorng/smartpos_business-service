@@ -20,10 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
-    # Keep this if your GitHub Environment is really named VPS_HOST.
-    # I recommend renaming the Environment to "production" later.
-    environment:
-      name: VPS_HOST
+    environment: production
 
     steps:
       # ---------------------------------------------------------
@@ -318,5 +315,5 @@ jobs:
           echo "- **Service:** Business Service" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Branch:** ${{ github.ref_name }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Environment:** VPS_HOST" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Environment:** production" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Status:** Healthy ✅" >> "$GITHUB_STEP_SUMMARY"
