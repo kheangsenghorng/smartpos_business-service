@@ -27,6 +27,8 @@ return [
 
     'algo' => env('JWT_ALGO', 'RS256'),
 
+    'secret' => env('JWT_SECRET', 'test-jwt-secret-key-for-phpunit-testing-only-1234567890'),
+
     /*
     |--------------------------------------------------------------------------
     | JWT Public Key

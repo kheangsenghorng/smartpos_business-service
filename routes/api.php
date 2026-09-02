@@ -28,6 +28,18 @@ Route::prefix('v1')->group(function () {
     // Authenticated Microservice Routes via JWT & Global API Rate Limiter
     Route::middleware(['jwt.auth', 'throttle:api'])->group(function () {
 
+        // Process Report Documentation (Protected)
+        Route::get('/BUSINESS_SERVICE_PROCESS_REPORT.md', function () {
+            $path = base_path('BUSINESS_SERVICE_PROCESS_REPORT.md');
+            if (!file_exists($path)) {
+                abort(404, 'Process report file not found.');
+            }
+            return response()->file($path, [
+                'Content-Type' => 'text/markdown; charset=UTF-8',
+                'Content-Disposition' => 'inline; filename="BUSINESS_SERVICE_PROCESS_REPORT.md"',
+            ]);
+        });
+
         require __DIR__.'/api/businesses.php';
 
         require __DIR__.'/api/business_settings.php';

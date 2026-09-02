@@ -1,53 +1,322 @@
-name: CD - Deploy to VPS
+name: Deploy Business Service
 
 on:
   push:
     branches:
       - main
       - master
-  workflow_dispatch:
+
+# Prevent two Business deployments from running at the same time.
+concurrency:
+  group: smartpos-business-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
-    name: Deploy to Production VPS
+    name: Deploy Business Service
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Keep this if your GitHub Environment is really named VPS_HOST.
+    # I recommend renaming the Environment to "production" later.
+    environment:
+      name: VPS_HOST
+
     steps:
-      - name: Checkout Code
+      # ---------------------------------------------------------
+      # 1. Checkout
+      # ---------------------------------------------------------
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy to VPS via SSH
+      # ---------------------------------------------------------
+      # 2. Deploy through SSH
+      # ---------------------------------------------------------
+      - name: Deploy Business Service
         uses: appleboy/ssh-action@v1.0.3
+
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+
           script_stop: true
+          command_timeout: 15m
+
           script: |
-            echo "=============================================="
-            echo "🚀 Starting Automated Deployment: Business Service"
-            echo "=============================================="
-            
-            # Navigate to workspace
-            if [ -d "/var/www/smartpos" ]; then
-              cd /var/www/smartpos
-              
-              # If central deploy.sh exists, use it
-              if [ -f "deploy.sh" ]; then
-                chmod +x deploy.sh
-                ./deploy.sh business
-              else
-                cd business-service
-                git pull origin main || git pull origin master
-                docker compose up -d --build
-                docker compose exec -T business-service php artisan migrate --force
-                docker compose exec -T business-service php artisan optimize
-              fi
-            else
-              echo "❌ Error: /var/www/smartpos directory not found on VPS."
+            set -euo pipefail
+
+            echo "================================================"
+            echo "🚀 SmartPOS Business Service Deployment"
+            echo "================================================"
+
+            APP_DIR="/opt/smartpos/business-service"
+            BRANCH="${{ github.ref_name }}"
+            COMMIT="${{ github.sha }}"
+
+            echo "📦 Application : Business Service"
+            echo "🌿 Branch      : ${BRANCH}"
+            echo "🔖 Commit      : ${COMMIT}"
+            echo "📂 Directory   : ${APP_DIR}"
+
+            # -------------------------------------------------
+            # Check project directory
+            # -------------------------------------------------
+            if [ ! -d "${APP_DIR}" ]; then
+              echo "❌ Directory does not exist:"
+              echo "${APP_DIR}"
               exit 1
             fi
-            
-            echo "=============================================="
-            echo "✅ Business Service Deployment Completed!"
-            echo "=============================================="
+
+            cd "${APP_DIR}"
+
+            # -------------------------------------------------
+            # Ensure shared SmartPOS network exists
+            # -------------------------------------------------
+            echo ""
+            echo "🌐 Checking smartpos-network"
+
+            docker network inspect smartpos-network >/dev/null 2>&1 \
+              || docker network create smartpos-network
+
+            # -------------------------------------------------
+            # Database backup BEFORE deployment
+            # -------------------------------------------------
+            echo ""
+            echo "💾 Backing up Business database"
+
+            BACKUP_SCRIPT="/opt/smartpos/backups/scripts/backup-business-db.sh"
+
+            if [ -x "${BACKUP_SCRIPT}" ]; then
+              "${BACKUP_SCRIPT}"
+
+              echo "✅ Database backup completed"
+            else
+              echo "⚠️ Backup script not found or not executable:"
+              echo "${BACKUP_SCRIPT}"
+            fi
+
+            # -------------------------------------------------
+            # Pull exact branch that triggered GitHub Actions
+            # -------------------------------------------------
+            echo ""
+            echo "⬇️ Fetching latest source code"
+
+            git fetch --prune origin "${BRANCH}"
+
+            git reset \
+              --hard \
+              "origin/${BRANCH}"
+
+            echo ""
+            echo "Current commit:"
+            git log -1 --oneline
+
+            # -------------------------------------------------
+            # Detect production Docker Compose file
+            # -------------------------------------------------
+            if [ -f "docker-compose.prod.yml" ]; then
+              COMPOSE_FILE="docker-compose.prod.yml"
+
+            elif [ -f "compose.prod.yml" ]; then
+              COMPOSE_FILE="compose.prod.yml"
+
+            elif [ -f "docker-compose.yml" ]; then
+              COMPOSE_FILE="docker-compose.yml"
+
+            elif [ -f "compose.yml" ]; then
+              COMPOSE_FILE="compose.yml"
+
+            else
+              echo "❌ Docker Compose file not found."
+              exit 1
+            fi
+
+            echo "🐳 Compose file: ${COMPOSE_FILE}"
+
+            # -------------------------------------------------
+            # Validate Docker Compose
+            # -------------------------------------------------
+            echo ""
+            echo "🔍 Validate Docker Compose configuration"
+
+            docker compose \
+              -f "${COMPOSE_FILE}" \
+              config --quiet
+
+            # -------------------------------------------------
+            # Build new Business image
+            # -------------------------------------------------
+            echo ""
+            echo "🏗 Building Business Service"
+
+            docker compose \
+              -f "${COMPOSE_FILE}" \
+              build \
+              business-service
+
+            # -------------------------------------------------
+            # Test that Laravel can boot BEFORE deployment
+            # -------------------------------------------------
+            echo ""
+            echo "🧪 Laravel boot check"
+
+            docker compose \
+              -f "${COMPOSE_FILE}" \
+              run \
+              --rm \
+              --no-deps \
+              business-service \
+              php artisan --version
+
+            # -------------------------------------------------
+            # Start infrastructure dependencies
+            # -------------------------------------------------
+            echo ""
+            echo "🗄 Starting Business MySQL and Redis"
+
+            docker compose \
+              -f "${COMPOSE_FILE}" \
+              up -d \
+              business-mysql \
+              business-redis
+
+            echo ""
+            echo "⏳ Waiting for infrastructure"
+            sleep 5
+
+            # -------------------------------------------------
+            # Show dependency status
+            # -------------------------------------------------
+            docker compose \
+              -f "${COMPOSE_FILE}" \
+              ps \
+              business-mysql \
+              business-redis
+
+            # -------------------------------------------------
+            # Run migrations using the NEW image
+            #
+            # Old application can continue running while this
+            # one-off container performs the migration.
+            # -------------------------------------------------
+            echo ""
+            echo "🗄 Running Laravel migrations"
+
+            docker compose \
+              -f "${COMPOSE_FILE}" \
+              run \
+              --rm \
+              --no-deps \
+              business-service \
+              sh -c "
+                php artisan optimize:clear &&
+                php artisan migrate --force
+              "
+
+            # -------------------------------------------------
+            # Start/recreate Business Service
+            # -------------------------------------------------
+            echo ""
+            echo "🚀 Starting Business Service"
+
+            docker compose \
+              -f "${COMPOSE_FILE}" \
+              up \
+              -d \
+              --no-deps \
+              business-service
+
+            # -------------------------------------------------
+            # Clear Laravel cache in the real running container
+            # -------------------------------------------------
+            echo ""
+            echo "🧹 Clearing Laravel caches"
+
+            docker compose \
+              -f "${COMPOSE_FILE}" \
+              exec \
+              -T \
+              business-service \
+              php artisan optimize:clear
+
+            # -------------------------------------------------
+            # Show deployment status
+            # -------------------------------------------------
+            echo ""
+            echo "📋 Container status"
+
+            docker compose \
+              -f "${COMPOSE_FILE}" \
+              ps
+
+            # -------------------------------------------------
+            # Local/public health check from VPS
+            # -------------------------------------------------
+            echo ""
+            echo "❤️ Running Business health check"
+
+            if ! curl \
+              --fail \
+              --silent \
+              --show-error \
+              --retry 10 \
+              --retry-delay 3 \
+              --retry-connrefused \
+              "https://smartpos-api.servicefixit.me/api/v1/business/health"
+            then
+              echo ""
+              echo "❌ Business Service health check failed"
+              echo ""
+              echo "Last 100 Business Service log lines:"
+              
+              docker compose \
+                -f "${COMPOSE_FILE}" \
+                logs \
+                --tail=100 \
+                business-service
+
+              exit 1
+            fi
+
+            echo ""
+            echo "================================================"
+            echo "✅ SmartPOS Business deployment completed"
+            echo "================================================"
+
+      # ---------------------------------------------------------
+      # 3. External health check from GitHub runner
+      # ---------------------------------------------------------
+      - name: External Health Check
+        run: |
+          echo "Checking Business Service from GitHub runner..."
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 5 \
+            --retry-delay 5 \
+            --retry-connrefused \
+            https://smartpos-api.servicefixit.me/api/v1/business/health
+
+          echo ""
+          echo "✅ Business Service is healthy"
+
+      # ---------------------------------------------------------
+      # 4. Deployment summary
+      # ---------------------------------------------------------
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "## ✅ SmartPOS Business Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Service:** Business Service" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Branch:** ${{ github.ref_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Environment:** VPS_HOST" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Status:** Healthy ✅" >> "$GITHUB_STEP_SUMMARY"

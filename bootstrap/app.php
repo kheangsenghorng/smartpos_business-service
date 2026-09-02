@@ -74,6 +74,34 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $exceptions->render(
+            function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, Request $request) {
+                if ($request->is('api/*') || $request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'RESOURCE_NOT_FOUND',
+                        'message' => 'The requested resource was not found.',
+                    ], 404);
+                }
+
+                return null;
+            }
+        );
+
+        $exceptions->render(
+            function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, Request $request) {
+                if ($request->is('api/*') || $request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'RESOURCE_NOT_FOUND',
+                        'message' => 'The requested resource was not found.',
+                    ], 404);
+                }
+
+                return null;
+            }
+        );
+
+        $exceptions->render(
             function (\PDOException $e, Request $request) {
                 if ($request->is('api/*') || $request->expectsJson()) {
                     return response()->json([

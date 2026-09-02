@@ -62,20 +62,33 @@ class AppServiceProvider extends ServiceProvider
                 (string) ($request->input('machine_id') ?? '')
             );
 
-            $key = $machineId !== ''
-                ? "auth:{$machineId}|{$request->ip()}"
-                : $request->ip();
+            $limits = [
+                Limit::perMinute(15)
+                    ->by('auth:ip:'.$request->ip())
+                    ->response(function (Request $request, array $headers) {
+                        return response()->json([
+                            'success' => false,
+                            'error' => 'TOO_MANY_ATTEMPTS',
+                            'message' => 'Too many authentication attempts from this IP. Please try again later.',
+                            'retry_after_seconds' => (int) ($headers['Retry-After'] ?? 60),
+                        ], 429, $headers);
+                    }),
+            ];
 
-            return Limit::perMinute(5)
-                ->by($key)
-                ->response(function (Request $request, array $headers) {
-                    return response()->json([
-                        'success' => false,
-                        'error' => 'TOO_MANY_ATTEMPTS',
-                        'message' => 'Too many authentication attempts. Please try again later.',
-                        'retry_after_seconds' => (int) ($headers['Retry-After'] ?? 60),
-                    ], 429, $headers);
-                });
+            if ($machineId !== '') {
+                $limits[] = Limit::perMinute(5)
+                    ->by("auth:{$machineId}|{$request->ip()}")
+                    ->response(function (Request $request, array $headers) {
+                        return response()->json([
+                            'success' => false,
+                            'error' => 'TOO_MANY_ATTEMPTS',
+                            'message' => 'Too many authentication attempts. Please try again later.',
+                            'retry_after_seconds' => (int) ($headers['Retry-After'] ?? 60),
+                        ], 429, $headers);
+                    });
+            }
+
+            return $limits;
         });
 
         RateLimiter::for('mutations', function (Request $request) {

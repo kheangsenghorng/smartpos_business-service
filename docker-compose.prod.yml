@@ -14,8 +14,8 @@ services:
     volumes:
       - .:/var/www/html
       - business-vendor:/var/www/html/vendor
-      - ./storage/certs/public.pem:/run/secrets/identity-jwt/public.pem:ro
-      
+      - /opt/smartpos/secrets/identity-jwt/public.pem:/run/secrets/identity-jwt/public.pem:ro
+
     depends_on:
       business-mysql:
         condition: service_healthy
@@ -41,9 +41,6 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
 
-    ports:
-      - "127.0.0.1:3308:3306"
-
     volumes:
       - business-mysql-data:/var/lib/mysql
 
@@ -65,9 +62,6 @@ services:
   # ==========================================
   business-redis:
     image: redis:8-alpine
-
-    ports:
-      - "127.0.0.1:6381:6379"
 
     volumes:
       - business-redis-data:/data
@@ -104,6 +98,9 @@ services:
         condition: service_healthy
 
     restart: unless-stopped
+
+    profiles:
+      - tools
 
     networks:
       - business-network

@@ -4,7 +4,8 @@
 **Port**: `:8002`  
 **Framework**: Laravel 13 (PHP 8.3)  
 **Database**: MySQL 8.4 (`smartpos_business_db`) & Redis  
-**Verification**: ✅ **112 Tests Passed, 526 Assertions (100%)**
+**Verification**: ✅ **112 Tests Passed, 526 Assertions (100%)**  
+**Interactive API Docs**: 🔗 [http://api.smartpos.test/docs/business](http://api.smartpos.test/docs/business)
 
 ---
 
@@ -101,3 +102,15 @@ businesses
 - **Total Tests**: **112 tests** (0 failed)
 - **Total Assertions**: **526 assertions**
 - **Test Categories**: Unit, Feature, Validation, Multi-Tenant BOLA, SQLi Pentest, Privilege Escalation, and State Machine Lifecycles.
+
+---
+
+## 6. Interactive API Documentation
+
+You can open and test the interactive OpenAPI documentation for Business Service directly:
+
+- **Local Domain:** 🔗 [http://api.smartpos.test/docs/business](http://api.smartpos.test/docs/business)
+- **API Gateway (Port 8000):** 🔗 [http://localhost:8000/docs/business](http://localhost:8000/docs/business)
+- **Direct Service Port:** 🔗 [http://localhost:8002/docs/business](http://localhost:8002/docs/business)
+- **OpenAPI Schema (JSON):** 🔗 [http://api.smartpos.test/docs/business.json](http://api.smartpos.test/docs/business.json)
+
