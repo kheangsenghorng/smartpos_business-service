@@ -89,9 +89,8 @@ jobs:
             BACKUP_SCRIPT="/opt/smartpos/backups/scripts/backup-business-db.sh"
 
             if [ -x "${BACKUP_SCRIPT}" ]; then
-              "${BACKUP_SCRIPT}"
-
-              echo "✅ Database backup completed"
+              "${BACKUP_SCRIPT}" || echo "⚠️ Database backup script exited with warning/error, continuing..."
+              echo "✅ Database backup step finished"
             else
               echo "⚠️ Backup script not found or not executable:"
               echo "${BACKUP_SCRIPT}"
