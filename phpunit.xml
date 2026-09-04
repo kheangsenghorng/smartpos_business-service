@@ -32,8 +32,11 @@
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
-        <env name="NIGHTWATCH_ENABLED" value="false"/>
-        <env name="JWT_ALGO" value="HS256"/>
-        <env name="JWT_SECRET" value="test-jwt-secret-key-for-phpunit-testing-only-1234567890"/>
+        <env name="JWT_ALGO" value="HS256" force="true"/>
+        <env name="JWT_SECRET" value="test-jwt-secret-key-for-phpunit-testing-only-1234567890" force="true"/>
+        <env name="JWT_VERIFY_ISSUER" value="true" force="true"/>
+        <env name="JWT_VERIFY_AUDIENCE" value="true" force="true"/>
+        <env name="JWT_ISSUER" value="smartpos-auth-service" force="true"/>
+        <env name="JWT_AUDIENCE" value="smartpos-api" force="true"/>
     </php>
 </phpunit>

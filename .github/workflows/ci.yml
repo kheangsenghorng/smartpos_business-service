@@ -53,7 +53,12 @@ jobs:
           APP_ENV: testing
           DB_CONNECTION: sqlite
           DB_DATABASE: ':memory:'
+          JWT_ALGO: HS256
           JWT_SECRET: test-jwt-secret-key-for-phpunit-testing-only-1234567890
+          JWT_VERIFY_ISSUER: true
+          JWT_VERIFY_AUDIENCE: true
+          JWT_ISSUER: smartpos-auth-service
+          JWT_AUDIENCE: smartpos-api
         run: php artisan test
 
   security:
