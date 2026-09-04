@@ -5,8 +5,8 @@
 **API Gateway Path**: `/api/v1/...`  
 **Framework**: Laravel 13 (PHP 8.3)  
 **Database**: MySQL 8.4 (`smartpos_business_db`) & Redis  
-**Security & Verification**: 100% Passed (117 Tests, 561 Assertions)  
-**Document Generation Date**: August 19, 2026  
+**Security & Verification**: 100% Passed (202 Tests, 937 Assertions)  
+**Document Generation Date**: September 4, 2026  
 
 ---
 
@@ -410,18 +410,22 @@ The service is backed by a 100% passing test suite with zero failures and zero s
    PASS  Tests\Feature\CashierSessionTest
    PASS  Tests\Feature\RegisterShiftAndCashDrawerTest
    PASS  Tests\Feature\BusinessPosDatabasePlanTest
+   PASS  Tests\Feature\WarehouseApiTest
+   PASS  Tests\Feature\WarehouseLocationApiTest
+   PASS  Tests\Feature\Security\WarehouseSecurityTest
+   PASS  Tests\Feature\Security\Rs256JwtVerificationTest
    PASS  Tests\Feature\Security\AttackShieldTest
    PASS  Tests\Feature\Security\InputValidationSecurityTest
    PASS  Tests\Feature\Security\PentestSecurityTest
    PASS  Tests\Feature\Security\PosPentestSecurityTest
 
-  Tests:    117 passed (561 assertions)
-  Duration: 5.64s
+  Tests:    202 passed (937 assertions)
+  Duration: 2.49s
 ```
 
 ### Verification Test Suites
 
-1. **Multi-Tenant BOLA Isolation Tests**: Verified that non-members receive `403 Forbidden` when attempting to access another tenant's businesses, outlets, registers, or POS devices.
+1. **Multi-Tenant BOLA Isolation Tests**: Verified that non-members receive `403 Forbidden` when attempting to access another tenant's businesses, outlets, registers, warehouses, or POS devices.
 2. **Privilege Escalation (BFLA) Tests**: Verified that regular staff cannot promote themselves to owners, rotate machine hardware secrets, modify global business settings, or alter cashier profiles.
 3. **Pessimistic Concurrency & Float Ledger Tests**: Verified that concurrent cash movements on drawers and shift closes run inside row-level locked transactions (`lockForUpdate`), preventing double-counting or race conditions.
 4. **SQLi, XSS & Attack Shield Pentests**: Automated penetration test suite asserting that malicious scanners (`sqlmap`, `nikto`), reconnaissance probes (`/.env`, `/.git`, `/phpmyadmin`), path traversals (`..`), null bytes, and script injection payloads are blocked at the middleware layer.

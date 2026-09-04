@@ -4,8 +4,9 @@
 **Port**: `:8002`  
 **Framework**: Laravel 13 (PHP 8.3)  
 **Database**: MySQL 8.4 (`smartpos_business_db`) & Redis  
-**Verification**: ✅ **112 Tests Passed, 526 Assertions (100%)**  
+**Verification**: ✅ **202 Tests Passed, 937 Assertions (100%)**  
 **Interactive API Docs**: 🔗 [http://api.smartpos.test/docs/business](http://api.smartpos.test/docs/business)
+**Updated**: September 4, 2026
 
 ---
 
@@ -99,9 +100,9 @@ businesses
 ## 5. Verification & Test Metrics
 
 - **Test Framework**: PHPUnit via `php artisan test`
-- **Total Tests**: **112 tests** (0 failed)
-- **Total Assertions**: **526 assertions**
-- **Test Categories**: Unit, Feature, Validation, Multi-Tenant BOLA, SQLi Pentest, Privilege Escalation, and State Machine Lifecycles.
+- **Total Tests**: **202 tests** (0 failed, 100% pass rate)
+- **Total Assertions**: **937 assertions**
+- **Test Categories**: Unit, Feature, Validation, Multi-Tenant BOLA, SQLi Pentest, Privilege Escalation, POS Hardware Lifecycle, Warehouse & Storage Locations, and RS256 Asymmetric JWT Verification.
 
 ---
 
