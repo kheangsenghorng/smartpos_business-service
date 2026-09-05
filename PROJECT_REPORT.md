@@ -1,12 +1,13 @@
 # SmartPOS Business / POS Service — Complete Project Report
 
 **Service**: `smartpos-business-service`  
-**Port**: `:8002`  
-**Framework**: Laravel 13 (PHP 8.3)  
-**Database**: MySQL 8.4 (`smartpos_business_db`) & Redis  
-**Verification**: ✅ **202 Tests Passed, 937 Assertions (100%)**  
-**Interactive API Docs**: 🔗 [http://api.smartpos.test/docs/business](http://api.smartpos.test/docs/business)
-**Updated**: September 4, 2026
+**Port**: `:8002` (FastCGI routing via API Gateway `:9000`)  
+**Runtime**: PHP 8.4-FPM with OPcache JIT (Tracing Mode)  
+**Framework**: Laravel 13  
+**Database**: MySQL 8.4 (`smartpos_business_db`) & Redis 8  
+**Verification**: ✅ **202 Tests Passed (100%) + 32/32 Pentest Passed**  
+**Interactive API Docs**: 🔗 [http://api.smartpos.test/docs/business](http://api.smartpos.test/docs/business)  
+**Updated**: September 5, 2026
 
 ---
 

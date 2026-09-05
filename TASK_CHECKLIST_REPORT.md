@@ -1,11 +1,11 @@
 # SmartPOS Business & POS Service (:8002) — Master Execution & Architecture Report
 
 **Service Name**: `smartpos-business-service`  
-**Internal Port**: `8002`  
+**Host Port**: `:8002` (FastCGI :9000)  
 **Gateway URL**: `http://api.smartpos.test/api/v1/...`  
-**Technology Stack**: Laravel 13 (PHP 8.3), MySQL 8.4 (`:3308`), Redis (`:6381`), Docker Compose  
-**Generated Date**: August 18, 2026  
-**Status**: ✅ **100% Implemented & Hardened (117/117 Tests Passed, 561 Assertions)**
+**Technology Stack**: Laravel 13 (PHP 8.4-FPM + OPcache JIT), MySQL 8.4 (`:3308`), Redis 8 (`:6381`), Docker Compose  
+**Updated Date**: September 5, 2026  
+**Status**: ✅ **100% Implemented & Hardened (202/202 Tests Passed, 937 Assertions)**
 
 ---
 
