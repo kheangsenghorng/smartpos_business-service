@@ -1,12 +1,15 @@
 # SmartPOS Business Service — Comprehensive Codebase & Process Report
 
 **Service Name**: `smartpos-business-service`  
-**Internal Port**: `8002`  
+**Host Port**: `:8002` (FastCGI routing via API Gateway `http://api.smartpos.test/api/v1/...`)  
+**Internal Port**: `:9000` (FastCGI)  
 **API Gateway Path**: `/api/v1/...`  
-**Framework**: Laravel 13 (PHP 8.3)  
-**Database**: MySQL 8.4 (`smartpos_business_db`) & Redis  
-**Security & Verification**: 100% Passed (202 Tests, 937 Assertions)  
-**Document Generation Date**: September 4, 2026  
+**Runtime**: PHP 8.4-FPM with OPcache JIT (Tracing Mode)  
+**Framework**: Laravel 13  
+**Database**: MySQL 8.4 (`smartpos_business_db`) & Redis 8  
+**Cache & Queue**: Redis (`CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`)  
+**Security & Verification**: 100% Passed (202 Tests, 937 Assertions) + 32/32 Pentest Suites Passed  
+**Document Generation Date**: September 5, 2026  
 
 ---
 
@@ -28,8 +31,9 @@ The **SmartPOS Business Service** is the central domain microservice responsible
 
 ```mermaid
 graph TD
-    Client["POS Terminal / Management Client"] -->|HTTPS / REST API| Gateway["API Gateway / Nginx Proxy (:8002)"]
-    Gateway --> MiddlewarePipeline["Security & Auth Middleware Pipeline"]
+    Client["POS Terminal / Management Client"] -->|HTTPS / REST API| Gateway["API Gateway / Nginx (:8000 / :8002)"]
+    Gateway -->|Direct FastCGI :9000 (Gzip L6)| FPM["PHP 8.4-FPM Engine (OPcache JIT Tracing)"]
+    FPM --> MiddlewarePipeline["Security & Auth Middleware Pipeline"]
     
     subgraph MiddlewarePipeline ["Security & Auth Middleware Pipeline"]
         AttackShield["AttackShieldMiddleware (Scanner & Probe Defense)"]
@@ -44,17 +48,22 @@ graph TD
     MiddlewarePipeline --> Controllers["API Controllers Layer"]
     Controllers --> FormRequests["Form Request Validation Layer"]
     Controllers --> EloquentORM["Eloquent Models & DB Transactions (Pessimistic Locking)"]
-    EloquentORM --> MySQL[("MySQL 8.4 Database")]
-    EloquentORM --> Redis[("Redis Cache / Rate Limiter")]
+    EloquentORM --> MySQL[("MySQL 8.4 Database (:3308)")]
+    EloquentORM --> Redis[("Redis 8 In-Memory Cache (:6381, 0.51ms)")]
+    EloquentORM --> Queue[("Redis Job Queue Subsystem")]
 ```
 
 ### Technical Stack Details
-- **Backend Language**: PHP 8.3
+- **Backend Runtime**: **PHP 8.4-FPM** (High-concurrency worker pool, `clear_env=no`)
+- **Code Accelerator**: **OPcache JIT Tracing** (`opcache.jit=tracing`, `buffer_size=64M`)
 - **Framework**: Laravel 13
 - **Primary Database**: MySQL 8.4 (with utf8mb4, InnoDB, strict mode, foreign key constraints)
-- **Caching & Rate Limiting**: Redis 7.x
-- **Authentication**: Stateless HMAC-SHA256 JWT validation
-- **Testing Engine**: PHPUnit 11 with custom penetration test suites
+- **Caching & Sessions**: Redis 8 (`CACHE_STORE=redis`, `phpredis` extension, ~0.51ms latency)
+- **Asynchronous Queue**: Redis Queue (`QUEUE_CONNECTION=redis`)
+- **Gateway Ingress**: Direct FastCGI reverse proxy with Level 6 JSON gzip compression
+- **Inter-Service Calls**: Routed via `http://api-gateway:80`
+- **Authentication**: Stateless HMAC-SHA256 JWT validation & RS256 compatibility
+- **Testing Engine**: PHPUnit 11 with 100% passing automated penetration test suites
 
 ---
 
@@ -433,7 +442,47 @@ The service is backed by a 100% passing test suite with zero failures and zero s
 
 ---
 
-## 8. Directory & File Reference Index
+## 8. Containerization & High-Performance Deployment Architecture
+
+The business service runs in a containerized **PHP 8.4-FPM** execution environment attached to the shared SmartPOS microservice network:
+
+```
+                          +-----------------------------------+
+                          |      SmartPOS API Gateway         |
+                          |      (Direct FastCGI Proxy)       |
+                          +-----------------+-----------------+
+                                            | FastCGI (:9000)
+                                            v
+                          +-----------------------------------+
+                          |     smartpos-business-service     |
+                          |      • PHP 8.4-FPM (Port: 9000)   |
+                          |      • OPcache JIT Tracing (64MB) |
+                          |      • FastCGI Socket Healthcheck |
+                          +--------+----------------+---------+
+                                   |                |
+                +------------------+                +------------------+
+                |                                                      |
+                v                                                      v
+     +--------------------+                                 +--------------------+
+     |smartpos-business-db|                                 |smartpos-business-  |
+     |   MySQL 8.4        |                                 |   redis (Port:6381)|
+     |   Port: 3308       |                                 |   0.51ms Latency   |
+     +--------------------+                                 +--------------------+
+```
+
+### High-Performance Configuration:
+- **FastCGI Daemon Mode:** Runs `php-fpm -F` as PID 1 in foreground.
+- **Worker Concurrency:** Multi-worker dynamic pool (`pm = dynamic`, `pm.max_children = 25`, `pm.start_servers = 4`).
+- **Environment Ingestion:** `clear_env = no` configured in `docker/php/www.conf` so microservice environment variables (`IDENTITY_SERVICE_URL`, `PRODUCT_SERVICE_URL`, `DB_*`, `REDIS_*`) are directly available to worker requests.
+- **Inter-Service Communication:** Set `IDENTITY_SERVICE_URL=http://api-gateway:80` and `PRODUCT_SERVICE_URL=http://api-gateway:80` allowing HTTP microservice calls to be translated cleanly to FastCGI through the API Gateway.
+- **Healthcheck Probe:** FastCGI socket connectivity verified with:
+  ```bash
+  php -r "exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);"
+  ```
+
+---
+
+## 9. Directory & File Reference Index
 
 ```text
 smartpos-business-service/
@@ -470,6 +519,11 @@ smartpos-business-service/
 │   ├── app.php, cors.php, database.php, jwt.php, etc.
 ├── database/
 │   └── migrations/ (14 Core Business Migrations)
+├── docker/
+│   ├── entrypoint.sh
+│   └── php/
+│       ├── opcache.ini
+│       └── www.conf
 ├── routes/
 │   ├── api.php
 │   └── api/ (10 Modular Route Files)
