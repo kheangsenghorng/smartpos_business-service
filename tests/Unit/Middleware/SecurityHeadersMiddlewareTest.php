@@ -34,9 +34,21 @@ class SecurityHeadersMiddlewareTest extends TestCase
         $this->assertEquals('1; mode=block', $result->headers->get('X-XSS-Protection'));
         $this->assertEquals('strict-origin-when-cross-origin', $result->headers->get('Referrer-Policy'));
         $this->assertEquals("default-src 'none'; frame-ancestors 'none';", $result->headers->get('Content-Security-Policy'));
-        $this->assertEquals('same-origin', $result->headers->get('Cross-Origin-Resource-Policy'));
+        $this->assertEquals('cross-origin', $result->headers->get('Cross-Origin-Resource-Policy'));
         $this->assertStringContainsString('max-age=3153600', $result->headers->get('Strict-Transport-Security'));
         $this->assertStringContainsString('camera=()', $result->headers->get('Permissions-Policy'));
+    }
+
+    public function test_attaches_same_origin_corp_for_non_api_endpoints(): void
+    {
+        $request = Request::create('/web/home', 'GET');
+        $response = new Response('<html>Home</html>');
+
+        $result = $this->middleware->handle($request, function () use ($response) {
+            return $response;
+        });
+
+        $this->assertEquals('same-origin', $result->headers->get('Cross-Origin-Resource-Policy'));
     }
 
     public function test_attaches_docs_csp_for_documentation_endpoints(): void
