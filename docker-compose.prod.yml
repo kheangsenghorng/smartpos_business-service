@@ -24,7 +24,7 @@ services:
       - "127.0.0.1:8002:9000"
 
     volumes:
-      - ${JWT_PUBLIC_KEY_FILE:-./storage/certs/public.pem}:/run/secrets/identity-jwt/public.pem:ro
+      - ${JWT_SECRETS_DIR:-/opt/smartpos/secrets/identity-jwt}:/run/secrets/identity-jwt:ro
 
     depends_on:
       business-mysql:
