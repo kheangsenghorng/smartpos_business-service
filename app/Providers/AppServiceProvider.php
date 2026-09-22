@@ -26,6 +26,27 @@ class AppServiceProvider extends ServiceProvider
             return true;
         });
 
+        Gate::define('viewPulse', function ($user = null): bool {
+            return in_array(optional($user)->email, [
+                //
+            ]) || app()->environment('local');
+        });
+
+        if (class_exists(\Laravel\Pulse\Facades\Pulse::class)) {
+            \Laravel\Pulse\Facades\Pulse::users(function ($ids) {
+                return $ids->map(function ($id) {
+                    return [
+                        'id' => $id,
+                        'name' => 'User ' . substr((string) $id, 0, 8),
+                        'extra' => (string) $id,
+                    ];
+                });
+            });
+        }
+
+        // Livewire uses its native hash-based routes (e.g. /livewire-7925d7c8/*)
+        // which the API gateway routes cleanly to this service without conflicts.
+
         /*
         |--------------------------------------------------------------------------
         | API Documentation

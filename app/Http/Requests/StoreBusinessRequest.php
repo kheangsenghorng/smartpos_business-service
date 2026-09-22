@@ -38,6 +38,11 @@ class StoreBusinessRequest extends FormRequest
             'is_tax_inclusive' => ['nullable', 'boolean'],
             'timezone' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', 'string', 'in:active,inactive,suspended'],
+            'owner_user_uuid' => ['nullable', 'string'],
+            'owner_name' => ['nullable', 'string', 'max:255'],
+            'owner_email' => ['nullable', 'email', 'max:255'],
+            'owner_phone' => ['nullable', 'string', 'max:50'],
+            'owner_role_code' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

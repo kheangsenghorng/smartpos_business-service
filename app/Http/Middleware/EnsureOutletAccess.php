@@ -33,7 +33,7 @@ class EnsureOutletAccess
         }
 
         $roles = $request->attributes->get('jwt_roles', []);
-        if (in_array('admin', $roles, true)) {
+        if (in_array('admin', $roles, true) || in_array('super_admin', $roles, true)) {
             return $next($request);
         }
 

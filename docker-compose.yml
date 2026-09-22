@@ -30,6 +30,34 @@ services:
       - business-smartpos-network
 
   # ==========================================
+  # Business Horizon (Queues & Workers)
+  # ==========================================
+  business-horizon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    command: php artisan horizon
+
+    volumes:
+      - .:/var/www/html
+      - business-vendor:/var/www/html/vendor
+      - ./storage/certs/public.pem:/run/secrets/identity-jwt/public.pem:ro
+
+    depends_on:
+      business-mysql:
+        condition: service_healthy
+
+      business-redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - business-network
+      - business-smartpos-network
+
+  # ==========================================
   # Business MySQL
   # ==========================================
   business-mysql:

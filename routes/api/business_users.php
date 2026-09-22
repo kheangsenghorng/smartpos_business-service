@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/businesses/{business}/users', [BusinessUserController::class, 'index'])
     ->middleware(['permission:business_users.view', 'business.member']);
 
+Route::get('/businesses/{business}/owner', [BusinessUserController::class, 'owner'])
+    ->middleware(['permission:business_users.view', 'business.member']);
+
 Route::post('/businesses/{business}/users', [BusinessUserController::class, 'store'])
     ->middleware(['permission:business_users.manage', 'business.member', 'business.owner']);
 

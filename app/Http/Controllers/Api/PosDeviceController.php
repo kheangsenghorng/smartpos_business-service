@@ -197,8 +197,9 @@ class PosDeviceController extends Controller
     {
         $userUuid = $request->attributes->get('user_uuid');
         $roles = $request->attributes->get('jwt_roles', []);
+        $isAdmin = in_array('admin', $roles, true) || in_array('super_admin', $roles, true);
 
-        if (! in_array('admin', $roles, true)) {
+        if (! $isAdmin) {
             $isOwner = BusinessUser::where('business_id', $posDevice->business_id)
                 ->where('user_uuid', $userUuid)
                 ->where('status', 'active')

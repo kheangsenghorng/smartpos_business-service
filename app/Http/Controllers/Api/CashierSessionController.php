@@ -173,7 +173,8 @@ class CashierSessionController extends Controller
 
         $cashierSession->load('businessUser');
         $businessUser = $cashierSession->businessUser;
-        $isAdmin = in_array('admin', $request->attributes->get('jwt_roles', []), true);
+        $roles = $request->attributes->get('jwt_roles', []);
+        $isAdmin = in_array('admin', $roles, true) || in_array('super_admin', $roles, true);
 
         // SEC-02 FIX: Block unlock if the cashier has no PIN configured.
         // Platform admins are exempt from this check and may unlock any session.

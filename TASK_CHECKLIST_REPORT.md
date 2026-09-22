@@ -234,3 +234,37 @@ php artisan test
 # Check all registered routes
 php artisan route:list --path=api/v1
 ```
+
+---
+
+## 7. SmartPOS Feature Control, Maintenance Screen & Announcement Tasks
+
+### Backend Tasks (Business Service :8002):
+- [x] **TASK 1 — Create `feature_controls` migration**: `uuid`, `business_uuid`, `outlet_uuid`, `feature_key`, `name`, `status`, `reason`, `maintenance_type`, `maintenance_started_at`, `estimated_completed_at`, `completed_at`, `show_countdown`, `allow_owner_bypass`, `allow_admin_bypass`, SoftDeletes.
+- [x] **TASK 2 — Create `FeatureControl` model**: Fillable fields, booleans & datetime casts, soft deletes, Redis caching helpers (`cacheKey`, `cacheStatus`, `clearCache`, `getCachedStatus`).
+- [x] **TASK 3 — Feature control permissions**: Admin & Owner bypass verification, granular access control.
+- [x] **TASK 4 — `FeatureControlController`**: Endpoints for index, store, show, update, delete, activate, maintenance, disable, restore, extend (+30m, +1h).
+- [x] **TASK 5 — Public/Authenticated feature check endpoint**: `GET /api/v1/feature-controls/check/{feature_key}` with cached status resolution.
+- [x] **TASK 6 — `CheckFeature` middleware**: Return HTTP 503 (`FEATURE_MAINTENANCE`) or HTTP 403 (`FEATURE_DISABLED`) with owner/admin bypass support.
+- [x] **TASK 7 — Add standard feature keys**: `dashboard.products`, `dashboard.inventory`, `dashboard.sales`, `dashboard.reports`, `product.create`, `product.update`, `product.delete`, `sales.checkout`, `sales.refund`, `sales.void`.
+- [x] **TASK 8 — Create `announcements` table**: `title`, `message`, `type` (`INFO`, `WARNING`, `MAINTENANCE`, `UPDATE`, `URGENT`), `priority`, `target_type`, `starts_at`, `ends_at`.
+- [x] **TASK 9 — Create `announcement_users` table**: Selected user UUIDs for target broadcasts.
+- [x] **TASK 10 — Create `announcement_reads` table**: Track `read_at` and `acknowledged_at` timestamps per user.
+- [x] **TASK 11 — `AnnouncementController`**: CRUD + `GET /api/v1/announcements/my`, `POST /read`, `POST /acknowledge`.
+- [x] **TASK 12 — Redis feature cache**: Pattern `feature:{business_uuid}:{feature_key}` with automatic invalidation on status updates.
+- [x] **Automated Tests**: 13 new feature tests (215 total tests passing, 975 assertions).
+
+### Frontend Tasks (Next.js Admin):
+- [x] **TASK 1 — `MaintenancePage` component**: Icon, "Under Maintenance" badge, reason, maintenance type, live ticking countdown (`HH : MM : SS`), Back to Dashboard button.
+- [x] **TASK 2 — `DisabledFeaturePage` component**: Clean disabled banner, explanation, back button.
+- [x] **TASK 3 — `FeatureGuard` component**: Wraps pages, evaluates `checkFeatureStatus()`, handles owner bypass preview.
+- [x] **TASK 4 — Feature-control API client**: `lib/api/feature-controls.ts` with TypeScript types.
+- [x] **TASK 5 — Protect Dashboard pages**: `<FeatureGuard>` wrapped around dashboard views.
+- [x] **TASK 6 — Protect individual actions**: `ActionGuard` helper to disable buttons or show maintenance tooltips.
+- [x] **TASK 7 — Owner Feature Control page**: `/admin/system/feature-controls` with live countdown table and quick actions (+30m, +1h, Complete, Disable).
+- [x] **TASK 8 — Maintenance form/modal**: Start maintenance dialog with type, reason, countdown toggle, duration pickers.
+- [x] **TASK 9 — Countdown logic**: Live second-by-second calculation from `estimated_completed_at - now()`.
+- [x] **TASK 10 — Announcement Admin page**: Management interface for publishing broadcasts.
+- [x] **TASK 11 — Cashier announcement UI**: `CashierAnnouncementModal` popup in `AdminLayout`.
+- [x] **TASK 12 — Read/Acknowledge tracking**: `POST /announcements/{uuid}/read` on mount, `POST /announcements/{uuid}/acknowledge` on "I Understand".
+

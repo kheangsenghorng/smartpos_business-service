@@ -14,14 +14,51 @@ use Illuminate\Support\Facades\Hash;
 class BusinessUserController extends Controller
 {
     /**
-     * List all users associated with the specified business.
+     * List all users associated with the specified business with optional role/owner filter.
      */
-    public function index(Business $business): JsonResponse
+    public function index(Request $request, Business $business): JsonResponse
     {
-        $users = $business->businessUsers()->get();
+        $query = $business->businessUsers();
+
+        if ($request->has('role')) {
+            $query->where('role', $request->query('role'));
+        }
+
+        if ($request->has('is_owner')) {
+            $isOwner = filter_var($request->query('is_owner'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($isOwner !== null) {
+                $query->where('is_owner', $isOwner);
+            }
+        }
+
+        if ($request->has('user_uuid')) {
+            $query->where('user_uuid', $request->query('user_uuid'));
+        }
+
+        $users = $query->get();
 
         return response()->json([
             'data' => $users,
+        ]);
+    }
+
+    /**
+     * Find the owner user of the specified business.
+     */
+    public function owner(Business $business): JsonResponse
+    {
+        $owner = $business->businessUsers()
+            ->where('is_owner', true)
+            ->first();
+
+        if (! $owner) {
+            return response()->json([
+                'message' => 'No owner found for this business.',
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => $owner,
         ]);
     }
 
