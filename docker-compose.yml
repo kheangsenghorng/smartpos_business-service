@@ -26,8 +26,10 @@ services:
     restart: unless-stopped
 
     networks:
-      - business-network
-      - business-smartpos-network
+      business-network:
+      business-smartpos-network:
+        aliases:
+          - business-service
 
   # ==========================================
   # Business Horizon (Queues & Workers)

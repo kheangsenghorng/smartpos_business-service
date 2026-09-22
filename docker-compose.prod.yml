@@ -17,6 +17,9 @@ services:
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: ${APP_DEBUG:-false}
 
+    expose:
+      - "9000"
+
     ports:
       - "127.0.0.1:8002:9000"
 
@@ -31,8 +34,10 @@ services:
         condition: service_healthy
 
     networks:
-      - business-network
-      - business-smartpos-network
+      business-network:
+      business-smartpos-network:
+        aliases:
+          - business-service
 
   # ==========================================
   # Business MySQL

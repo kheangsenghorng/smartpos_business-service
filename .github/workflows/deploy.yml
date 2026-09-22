@@ -52,6 +52,15 @@ jobs:
             git fetch origin ${{ github.ref_name }}
             git reset --hard origin/${{ github.ref_name }}
 
+            echo "🔑 Ensuring JWT public key exists"
+            mkdir -p storage/certs 2>/dev/null || true
+            if [ -f /opt/smartpos/secrets/identity-jwt/public.pem ]; then
+              cp -f /opt/smartpos/secrets/identity-jwt/public.pem storage/certs/public.pem
+            elif [ -f /opt/smartpos/identity-service/storage/certs/public.pem ]; then
+              cp -f /opt/smartpos/identity-service/storage/certs/public.pem storage/certs/public.pem
+            fi
+            chmod 644 storage/certs/*.pem 2>/dev/null || true
+
             COMPOSE_FILE="docker-compose.yml"
             [ -f "docker-compose.prod.yml" ] && COMPOSE_FILE="docker-compose.prod.yml"
             echo "🐳 Using compose file: ${COMPOSE_FILE}"
@@ -66,7 +75,7 @@ jobs:
               business-service
 
             echo "⏳ Wait for application"
-            sleep 8
+            sleep 10
 
             echo "🗄 Run migrations"
             docker compose -f "${COMPOSE_FILE}" exec -T business-service \
@@ -75,6 +84,11 @@ jobs:
             echo "🧹 Clear cache"
             docker compose -f "${COMPOSE_FILE}" exec -T business-service \
               php artisan optimize:clear
+
+            # Reload API Gateway so Nginx upstream immediately connects to new container
+            if docker ps --format '{{.Names}}' | grep -q "api-gateway"; then
+              docker exec -i smartpos-api-gateway nginx -s reload 2>/dev/null || true
+            fi
 
             echo "📋 Status"
             docker compose -f "${COMPOSE_FILE}" ps
@@ -86,7 +100,7 @@ jobs:
           echo "Checking Business Service from GitHub runner..."
           curl \
             --fail \
-            --retry 5 \
+            --retry 10 \
             --retry-delay 5 \
             https://smartpos-api.servicefixit.me/api/v1/business/health
 
