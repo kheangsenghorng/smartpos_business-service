@@ -53,16 +53,15 @@ jobs:
             git reset --hard origin/${{ github.ref_name }}
 
             echo "🔑 Ensuring JWT public key exists"
-            [ -d storage/certs/public.pem ] && rm -rf storage/certs/public.pem || true
+            docker run --rm -v "$(pwd)/storage/certs:/certs" alpine rm -rf /certs/public.pem 2>/dev/null || rm -rf storage/certs/public.pem 2>/dev/null || true
             mkdir -p storage/certs 2>/dev/null || true
-            if [ -f /opt/smartpos/secrets/identity-jwt/public.pem ]; then
-              cp -f /opt/smartpos/secrets/identity-jwt/public.pem storage/certs/public.pem
-            elif [ -f ../secrets/identity-jwt/public.pem ]; then
-              cp -f ../secrets/identity-jwt/public.pem storage/certs/public.pem
-            elif [ -f /opt/smartpos/identity-service/storage/certs/public.pem ]; then
-              cp -f /opt/smartpos/identity-service/storage/certs/public.pem storage/certs/public.pem
+            if [ ! -d storage/certs/public.pem ]; then
+              if [ -f /opt/smartpos/secrets/identity-jwt/public.pem ]; then
+                cp -f /opt/smartpos/secrets/identity-jwt/public.pem storage/certs/public.pem 2>/dev/null || true
+              elif [ -f ../secrets/identity-jwt/public.pem ]; then
+                cp -f ../secrets/identity-jwt/public.pem storage/certs/public.pem 2>/dev/null || true
+              fi
             fi
-            chmod 644 storage/certs/*.pem 2>/dev/null || true
 
             COMPOSE_FILE="docker-compose.yml"
             [ -f "docker-compose.prod.yml" ] && COMPOSE_FILE="docker-compose.prod.yml"
